@@ -139,6 +139,31 @@ export const pic = (p, st, hp, extra = '') => (p.unseen ? terra(p.species, st, h
 // The garden is Velune itself: its five biomes side by side, each finished plant standing in its own biome.
 // From build step 3 Gemini turns the composed picture into a looping clip; until then the page animates it.
 export const ZONES = ['spire', 'star', 'tendril', 'cap', 'orb'];
+
+// Every finished plant in its biome (a 200-wide band of a 1000-wide scene, in ZONES order,
+// the same order as the painted landscape), the back row at backBase, the front at frontBase.
+function plantsIn(done, r, backBase, frontBase) {
+  const zoneOf = p => Math.max(0, ZONES.indexOf(p.species.form));
+  const perZone = {};
+  const slots = done.map(p => {
+    const z = zoneOf(p), k = (perZone[z] = (perZone[z] || 0) + 1) - 1;
+    const back = k % 2 === 1, s = back ? .78 : 1.04;
+    const x = z * 200 + 100 + (k === 0 ? 0 : (k % 2 ? -1 : 1) * (58 + 20 * Math.floor(k / 2))) + (r() - .5) * 16, base = back ? backBase : frontBase;
+    return { p, back, s, x, base };
+  }).sort((a, b) => (a.back === b.back ? 0 : a.back ? -1 : 1));
+  return slots.map(({ p, s, x, base }, i) => {
+    const [st, hp] = p.history.at(-1);
+    const w = 118 * s, hh = 142 * s;
+    const svg = alienSVG(p.species, st, hp).replace('<svg viewBox', `<svg x="${(x - w / 2).toFixed(1)}" y="${(base - hh + 6).toFixed(1)}" width="${w.toFixed(1)}" height="${hh.toFixed(1)}" viewBox`);
+    return `<g class="gplant" data-gplant="${p.id}" tabindex="0" role="button" aria-label="${esc(p.name)}: ${esc(p.done.note)}"><title>${esc(p.name)} · ${esc(p.done.note)}</title><g class="sway" style="animation-delay:-${(i * 1.7).toFixed(1)}s;animation-duration:${(5.5 + (i % 3)).toFixed(1)}s">${svg}</g>
+      <text x="${x.toFixed(1)}" y="${(base + 14).toFixed(1)}" text-anchor="middle" fill="#ffffffd0" style="font:600 ${s > 1 ? 13 : 11}px var(--font-body);paint-order:stroke;stroke:#0b0916a0;stroke-width:3px">${esc(p.name)}</text></g>`;
+  }).join('');
+}
+
+// The finished plants alone, to stand on the painted landscape (the Garden page's wallpaper).
+export function gardenPlants(done) {
+  return `<svg class="plants-layer alive" viewBox="0 0 1000 230" preserveAspectRatio="xMidYMax meet" role="img" aria-label="Your garden on Velune, ${done.length} finished plant${done.length > 1 ? 's' : ''}">${plantsIn(done, rng('the garden'), 168, 212)}</svg>`;
+}
 export function gardenScene(done) {
   const r = rng('the garden');
   let stars = '';
@@ -150,21 +175,7 @@ export function gardenScene(done) {
   const farStops = ZONES.map((z, i) => `<stop offset="${(i * .2 + .1).toFixed(2)}" stop-color="${LOOK[z].far}"/>`).join('');
   const hazes = ZONES.map((z, i) => `<ellipse cx="${i * 200 + 100}" cy="320" rx="150" ry="70" fill="${LOOK[z].haze}"/>`).join('');
   const labels = ZONES.map((z, i) => `<text x="${i * 200 + 100}" y="300" text-anchor="middle" fill="#ffffff38" style="font:600 10px var(--font-body);letter-spacing:.14em">${LOOK[z].name.toUpperCase()}</text>`).join('');
-  const zoneOf = p => Math.max(0, ZONES.indexOf(p.species.form));
-  const perZone = {};
-  const slots = done.map(p => {
-    const z = zoneOf(p), k = (perZone[z] = (perZone[z] || 0) + 1) - 1;
-    const back = k % 2 === 1, s = back ? .78 : 1.04;
-    const x = z * 200 + 100 + (k === 0 ? 0 : (k % 2 ? -1 : 1) * (58 + 20 * Math.floor(k / 2))) + (r() - .5) * 16, base = back ? 340 : 392;
-    return { p, back, s, x, base };
-  }).sort((a, b) => (a.back === b.back ? 0 : a.back ? -1 : 1));
-  const plantsSVG = slots.map(({ p, s, x, base }, i) => {
-    const [st, hp] = p.history.at(-1);
-    const w = 118 * s, hh = 142 * s;
-    const svg = alienSVG(p.species, st, hp).replace('<svg viewBox', `<svg x="${(x - w / 2).toFixed(1)}" y="${(base - hh + 6).toFixed(1)}" width="${w.toFixed(1)}" height="${hh.toFixed(1)}" viewBox`);
-    return `<g class="gplant" data-gplant="${p.id}" tabindex="0" role="button" aria-label="${esc(p.name)}: ${esc(p.done.note)}"><title>${esc(p.name)} · ${esc(p.done.note)}</title><g class="sway" style="animation-delay:-${(i * 1.7).toFixed(1)}s;animation-duration:${(5.5 + (i % 3)).toFixed(1)}s">${svg}</g>
-      <text x="${x.toFixed(1)}" y="${(base + 14).toFixed(1)}" text-anchor="middle" fill="#ffffffa0" style="font:600 ${s > 1 ? 13 : 11}px var(--font-body)">${esc(p.name)}</text></g>`;
-  }).join('');
+  const plantsSVG = plantsIn(done, r, 340, 392);
   return `<svg class="scene alive" viewBox="0 0 1000 420" role="img" aria-label="Your garden on Velune, ${done.length} finished plants">
     <defs>
       <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0820"/><stop offset=".6" stop-color="#1b1440"/><stop offset="1" stop-color="#2b1d4f"/></linearGradient>

@@ -175,13 +175,37 @@ nav.places small { font-family: var(--font-mono); font-weight: 500; margin-left:
 @keyframes twinkle { from { opacity: .15; } to { opacity: 1; } }
 @keyframes mist { from { transform: translateX(0); } to { transform: translateX(-180px); } }
 @keyframes bob { from { transform: translateY(0); } to { transform: translateY(6px); } }
-.land { position: relative; aspect-ratio: 16 / 9; max-height: 72vh; width: 100%; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: radial-gradient(120% 90% at 50% 100%, #2b1d4f, var(--night) 70%); margin-bottom: 18px; }
-.land img, .land video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-.land-over { position: absolute; inset: auto 0 0 0; display: flex; justify-content: center; padding: 18px; background: linear-gradient(transparent, rgba(8, 6, 18, .55)); }
-.land.empty .land-over { inset: 0; align-items: center; background: none; }
-.land-note { color: #f1ecff; font-size: 14px; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+/* The Garden page: the landscape fills the whole page as a wallpaper (as on Roy OS), the plants stand on it */
+#wall { position: fixed; inset: 0; z-index: 0; background: radial-gradient(120% 90% at 50% 100%, #2b1d4f, #0b0916 70%); }
+#wall[hidden] { display: none; }
+#wall img, #wall video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+#wall::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgb(8 6 18 / .6), transparent 24%, transparent 72%, rgb(8 6 18 / .3)); }
+body.walled { background: #0b0916; color: #f1ecff; color-scheme: dark; }
+body.walled .wrap { position: relative; z-index: 1; padding-bottom: 24px; }
+body.walled .brand b, body.walled .stage-head h1 { color: #fff; }
+body.walled nav.places { background: rgb(255 255 255 / .14); backdrop-filter: blur(10px); }
+body.walled nav.places button { color: rgb(255 255 255 / .78); }
+body.walled nav.places button[aria-current="page"] { background: rgb(255 255 255 / .92); color: #1b2820; }
+body.walled .find input { background: rgb(255 255 255 / .14); border-color: rgb(255 255 255 / .25); color: #fff; backdrop-filter: blur(10px); }
+body.walled .find input::placeholder, body.walled .find kbd, body.walled .today { color: rgb(255 255 255 / .72); }
+body.walled .find kbd { border-color: rgb(255 255 255 / .3); }
+body.walled .find-results { color: var(--ink); }
+.stage { min-height: calc(100vh - var(--head, 86px)); min-height: calc(100dvh - var(--head, 86px)); display: flex; flex-direction: column; padding-bottom: 14px; }
+.stage-head { max-width: 560px; }
+.stage-head h1 { text-shadow: 0 2px 12px rgb(0 0 0 / .45); }
+.stage-head p { color: rgb(255 255 255 / .82); text-shadow: 0 1px 6px rgb(0 0 0 / .55); }
+.stage-note { margin: auto; padding: 24px 0; text-align: center; }
+.land-note { color: #f1ecff; font-size: 15px; text-shadow: 0 1px 4px rgb(0 0 0 / .7); }
 .land-note .linkish { color: inherit; text-decoration: underline; }
-.land-foot { margin: 14px 2px 0; font-size: 13px; color: var(--muted); }
+.plants-scroll { margin-top: auto; width: 100vw; margin-left: calc(50% - 50vw); overflow-x: auto; scrollbar-width: none; }
+.plants-scroll::-webkit-scrollbar { display: none; }
+.plants-layer { display: block; width: 100%; min-width: 760px; height: auto; max-height: 48vh; }
+.plants-layer.alive .sway { transform-box: fill-box; transform-origin: 50% 100%; animation: sway 6s ease-in-out infinite alternate; }
+body.walled .done-list { margin-top: 18px; }
+body.walled .done-row { background: rgb(15 12 29 / .62); border-color: rgb(255 255 255 / .12); color: #f1ecff; backdrop-filter: blur(10px); }
+body.walled .done-row .out, body.walled .done-row .dates, body.walled .done-row .species-name { color: rgb(255 255 255 / .7); }
+body.walled .land-foot .linkish { color: rgb(255 255 255 / .7); }
+.land-foot { margin: 14px 2px 0; font-size: 13px; }
 .scene-caption { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 10px 2px 18px; }
 .done-list { display: grid; gap: 6px; }
 .done-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 6px 12px 6px 6px; }

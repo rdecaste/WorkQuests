@@ -4,7 +4,7 @@
 import { LIMIT, TYPES, CADENCES, cadenceName, isPerennial, daysBetween, addDays, placeOf, lastCare, ratio as ratioOn, health as healthOn, RANK } from './shared/rules.js';
 import { check, say, fingerprint, normalizeWord, mask, words, MAX_WORDS } from './shared/guard.js';
 import { CATALOGUE } from './shared/velune.js';
-import { esc, alienSVG, packet, terra, VEIL, pic, gardenScene } from './draw.js';
+import { esc, alienSVG, packet, terra, VEIL, pic, gardenPlants } from './draw.js';
 
 // ---------- state from the Worker ----------
 let state = null, plants = [], TODAY = '', keepOutSet = {};
@@ -166,17 +166,32 @@ function greenhouseView() {
     </div>`).join('')}`;
 }
 
-// The empty Velune landscape behind the garden: OpenAI's still with Gemini's loop over it
-// (src/landscape.js). With reduced motion only the still shows.
+// The Garden page's wallpaper: the empty Velune landscape filling the whole page, as on Roy OS
+// (OpenAI's still with Gemini's loop over it, src/landscape.js), the finished plants standing on it.
+// #wall lives outside the view, so a re-render doesn't restart the loop. Reduced motion: the still only.
 const stillOnly = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const landBusy = () => ['painting', 'animating'].includes(state.landscape?.status);
-function landscapeHTML() {
+const $wall = document.getElementById('wall');
+let wallKey = null;
+// The stage fills the screen under the header, so the plants stand at the bottom of the first view.
+const fitStage = () => document.body.style.setProperty('--head', document.querySelector('header.top').offsetHeight + 'px');
+window.addEventListener('resize', fitStage);
+function setWall(on) {
+  document.body.classList.toggle('walled', on);
+  if (on) fitStage();
+  $wall.hidden = !on;
+  const L = on ? state.landscape || {} : {};
+  const key = on ? `${L.still}|${L.clip}|${stillOnly()}` : null;
+  if (key === wallKey) return;
+  wallKey = key;
+  $wall.innerHTML = on && L.still ? `<img src="${esc(L.still)}" alt="">${L.clip && !stillOnly() ? `<video src="${esc(L.clip)}" poster="${esc(L.still)}" autoplay muted loop playsinline disablepictureinpicture></video>` : ''}` : '';
+}
+function landNote() {
   const L = state.landscape || { status: 'none' };
-  const media = L.still ? `<img class="land-still" src="${esc(L.still)}" alt="">${L.clip && !stillOnly() ? `<video class="land-clip" src="${esc(L.clip)}" poster="${esc(L.still)}" autoplay muted loop playsinline disablepictureinpicture aria-hidden="true"></video>` : ''}` : '';
-  const over = landBusy() ? `<span class="land-note">${L.status === 'painting' ? 'Painting Velune' : 'Bringing it to life'}… this takes a few minutes.</span>`
-    : L.status === 'failed' ? `<span class="land-note">The painting didn't work this time. <button class="linkish" type="button" data-landscape>Try again</button></span>`
-    : !L.still ? `<button class="btn primary" type="button" data-landscape>✦ Paint the landscape</button>` : '';
-  return `<div class="land${L.still ? '' : ' empty'}" role="img" aria-label="Velune at night, five biomes side by side">${media}${over ? `<div class="land-over">${over}</div>` : ''}</div>`;
+  if (landBusy()) return `<span class="land-note">${L.status === 'painting' ? 'Painting Velune' : 'Bringing it to life'}… this takes a few minutes.</span>`;
+  if (L.status === 'failed') return `<span class="land-note">The painting didn't work this time. <button class="linkish" type="button" data-landscape>Try again</button></span>`;
+  if (!L.still) return `<button class="btn primary" type="button" data-landscape>✦ Paint the landscape</button>`;
+  return '';
 }
 let landTimer = null;
 function watchLandscape() {
@@ -196,14 +211,16 @@ function watchLandscape() {
 function gardenView() {
   const done = plants.filter(p => placeOf(p) === 'garden').sort((a, b) => (a.done.date < b.done.date ? -1 : 1));
   const first = done.slice().sort((a, b) => (a.planted < b.planted ? -1 : 1))[0];
-  const L = state.landscape || {};
+  const L = state.landscape || {}, note = landNote();
   return `
-    <div class="summary"><div><h1>The garden</h1><p>Everything you grew to the end. It stays as it was on its last day; nothing here needs a check-in.</p></div></div>
-    ${landscapeHTML()}
-    ${done.length ? `<div class="scene-wrap">${gardenScene(done)}</div>
-    <div class="scene-caption"><span>${done.length} plant${done.length > 1 ? 's' : ''} grown since ${fmt(first.planted, { month: 'long', year: 'numeric' })}, all on Velune</span><span>Tap a plant to open it</span></div>
-    <div class="done-list">${done.slice().reverse().map(p => `<button class="done-row" type="button" data-plant="${p.id}">${thumb(p)}<div><b>${esc(p.name)}</b> <span class="species-name">${esc(p.species.name)}</span><div class="out">${esc(p.done.note)}</div></div><span class="dates">${short(p.planted)} → ${short(p.done.date)}</span></button>`).join('')}</div>`
-    : '<p class="hint">Nothing finished yet. Plants you mark Done, or people you plant out, settle here.</p>'}
+    <section class="stage">
+      <div class="stage-head"><h1>The garden</h1><p>${done.length
+        ? `${done.length} plant${done.length > 1 ? 's' : ''} grown since ${fmt(first.planted, { month: 'long', year: 'numeric' })}, all on Velune. Tap one to open it.`
+        : 'Everything you grow to the end settles here. Plants you mark Done, or people you plant out, stand in this landscape.'}</p></div>
+      ${note ? `<div class="stage-note">${note}</div>` : ''}
+      ${done.length ? `<div class="plants-scroll">${gardenPlants(done)}</div>` : ''}
+    </section>
+    ${done.length ? `<div class="done-list">${done.slice().reverse().map(p => `<button class="done-row" type="button" data-plant="${p.id}">${thumb(p)}<div><b>${esc(p.name)}</b> <span class="species-name">${esc(p.species.name)}</span><div class="out">${esc(p.done.note)}</div></div><span class="dates">${short(p.planted)} → ${short(p.done.date)}</span></button>`).join('')}</div>` : ''}
     ${L.still && !landBusy() ? '<p class="land-foot"><button class="linkish" type="button" data-landscape>Repaint the landscape</button></p>' : ''}`;
 }
 
@@ -586,6 +603,7 @@ function render() {
   $view.innerHTML = route.name === 'plant' ? plantView(p) : route.name === 'new' ? newView() : route.name === 'edit' ? editView(p)
     : route.name === 'garden' ? gardenView() : route.name === 'manage' ? manageView() : greenhouseView();
   document.getElementById('places').innerHTML = navHTML();
+  setWall(route.name === 'garden');
 }
 
 // ---------- reading the form ----------

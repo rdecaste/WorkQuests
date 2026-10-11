@@ -75,8 +75,14 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   `settings` holds `landscape` (what the page shows) and `landscape_job`
   (painting, animating, ready, failed). The prompts are fixed text
   (`STILL_PROMPT`, `MOTION_PROMPT` in `src/landscape.js`): nothing Roy types
-  goes to OpenAI or Gemini. The page plays the loop muted on repeat over the
-  still; with reduced motion only the still shows.
+  goes to OpenAI or Gemini. The landscape fills the whole Garden page as a
+  wallpaper, as on Roy OS (Roy: "I want the garden to fill the whole page
+  similar to the roy os landing page. just make sure my plants visible"): a
+  fixed `#wall` behind the page plays the loop muted on repeat over the still
+  (with reduced motion only the still), the header turns to glass, and the
+  finished plants stand along the bottom of the first screen in their biome
+  bands (`gardenPlants` in `public/draw.js`, the same left-to-right order as
+  the painted biomes; swipe sideways on a phone). Their list follows below.
 - **Export.** `GET /api/export` downloads every table as JSON (link at the
   bottom of Manage); of `settings` only the guard salt.
 
@@ -118,3 +124,6 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   copy, so Roy OS's new `Studio` entrypoint paints the still and the loop with
   its keys and the weekly world's functions (rdecaste/RoyOS `src/studio.js`);
   no keys needed here.
+- **11 Oct 2026, the garden fills the page.** Roy painted the first landscape
+  (still and loop ready in about a minute). The Garden page is now full-bleed
+  like Roy OS's landing page, with the finished plants standing on it.
