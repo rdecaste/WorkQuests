@@ -4,6 +4,9 @@ import { fakeD1 } from './d1fake.js';
 import { primeCerts } from '../src/access.js';
 import worker from '../src/index.js';
 
+// No network in the tests: the build machine can reach the real cloudflareaccess.com.
+globalThis.fetch = async url => { throw new Error(`no network in tests: ${url}`); };
+
 export const TEAM = 'test-team', AUD = 'test-aud', EMAIL = 'gardener@example.test';
 const enc = o => Buffer.from(JSON.stringify(o)).toString('base64url');
 

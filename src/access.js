@@ -5,24 +5,32 @@
 
 const CERTS = new Map(); // team -> { at, keys: Map(kid -> CryptoKey) }
 const CERTS_TTL = 3600e3;
+const REFETCH_GAP = 60e3; // an unknown key id triggers at most one fetch a minute
 
 const b64url = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '=')), c => c.charCodeAt(0));
 const json = s => JSON.parse(new TextDecoder().decode(b64url(s)));
 const importKey = jwk => crypto.subtle.importKey('jwk', { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true }, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
 
-// The tests hand over their own keys instead of fetching Cloudflare's.
+// Adds keys to the team's set (the tests hand over their own instead of fetching
+// Cloudflare's). Keys already known stay until the set expires, so a rotation
+// in the middle of a session doesn't lock anyone out.
 export async function primeCerts(team, jwks) {
-  const keys = new Map();
-  for (const k of jwks) keys.set(k.kid, await importKey(k));
+  const have = CERTS.get(team);
+  const keys = have && Date.now() - have.at < CERTS_TTL ? have.keys : new Map();
+  for (const k of jwks) if (k && k.kid && k.kty === 'RSA') keys.set(k.kid, await importKey(k));
   CERTS.set(team, { at: Date.now(), keys });
 }
 
 async function keyFor(team, kid) {
   const cached = CERTS.get(team);
-  if (cached && Date.now() - cached.at < CERTS_TTL && cached.keys.has(kid)) return cached.keys.get(kid);
-  const res = await fetch(`https://${team}.cloudflareaccess.com/cdn-cgi/access/certs`);
-  if (!res.ok) return null;
-  await primeCerts(team, (await res.json()).keys || []);
+  const fresh = cached && Date.now() - cached.at < CERTS_TTL;
+  if (fresh && cached.keys.has(kid)) return cached.keys.get(kid);
+  if (cached && Date.now() - cached.at < REFETCH_GAP) return null;
+  try {
+    const res = await fetch(`https://${team}.cloudflareaccess.com/cdn-cgi/access/certs`);
+    if (!res.ok) return null;
+    await primeCerts(team, (await res.json()).keys || []);
+  } catch { return null; }
   return CERTS.get(team).keys.get(kid) || null;
 }
 

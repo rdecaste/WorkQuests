@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeEnv, call, token, EMAIL } from './helpers.js';
+import { makeEnv, call, token, EMAIL, TEAM } from './helpers.js';
+import { primeCerts } from '../src/access.js';
 
 test('a valid Access token for an allowed email gets in', async () => {
   const r = await call(makeEnv(), 'GET', '/api/garden');
@@ -62,4 +63,16 @@ test('writes need JSON from the same origin', async () => {
   const env = makeEnv();
   assert.equal((await call(env, 'POST', '/api/ideas', { name: 'x', type: 'project' }, { headers: { 'content-type': 'text/plain' } })).status, 415);
   assert.equal((await call(env, 'POST', '/api/ideas', { name: 'x', type: 'project' }, { headers: { origin: 'https://evil.example' } })).status, 403);
+});
+
+test('a key set fetched later does not drop the keys already known', async () => {
+  const env = makeEnv();
+  const real = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ keys: [] }), { status: 200 });
+  try {
+    await primeCerts(TEAM, []); // as if Cloudflare's set was just fetched, without our test key
+    assert.equal((await call(env, 'GET', '/api/garden')).status, 200);
+    assert.equal((await call(env, 'GET', '/api/garden', undefined, { jwt: await token({}, { kid: 'other' }) })).status, 401);
+    assert.equal((await call(env, 'GET', '/api/garden')).status, 200);
+  } finally { globalThis.fetch = real; }
 });
