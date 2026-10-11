@@ -175,14 +175,22 @@ nav.places small { font-family: var(--font-mono); font-weight: 500; margin-left:
 @keyframes twinkle { from { opacity: .15; } to { opacity: 1; } }
 @keyframes mist { from { transform: translateX(0); } to { transform: translateX(-180px); } }
 @keyframes bob { from { transform: translateY(0); } to { transform: translateY(6px); } }
-/* The Garden page: the landscape fills the whole page as a wallpaper (as on Roy OS), the plants stand on it */
+/* The landscape is the wallpaper of every page (as on Roy OS). Over it the app wears its dark colours
+   with see-through surfaces; the Garden page dims the picture least, so the plants stand in it. */
+body.walled {
+  --bg: #12101f; --surface: rgb(20 17 36 / .78); --surface-2: rgb(255 255 255 / .1); --ink: #eef0f4; --muted: #b3bcc8; --line: rgb(255 255 255 / .16);
+  --accent: #7cc292; --accent-ink: #0f1a13; --magic: #b19cff; --thriving: #5fc27b; --fine: #97c086; --thirsty: #e3aa3c;
+  --wilting: #e57d55; --dormant: #a3aeb9; --done: #e2c25e; --night: #0b0916;
+}
 #wall { position: fixed; inset: 0; z-index: 0; background: radial-gradient(120% 90% at 50% 100%, #2b1d4f, #0b0916 70%); }
 #wall[hidden] { display: none; }
 #wall img, #wall video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-#wall::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgb(8 6 18 / .6), transparent 24%, transparent 72%, rgb(8 6 18 / .3)); }
+#wall::after { content: ""; position: absolute; inset: 0; background: rgb(8 6 18 / .5); transition: background .6s ease; }
+body.garden-page #wall::after { background: linear-gradient(rgb(8 6 18 / .6), transparent 24%, transparent 72%, rgb(8 6 18 / .3)); }
 body.walled { background: #0b0916; color: #f1ecff; color-scheme: dark; }
 body.walled .wrap { position: relative; z-index: 1; padding-bottom: 24px; }
 body.walled .brand b, body.walled .stage-head h1 { color: #fff; }
+body.walled .summary h1 { text-shadow: 0 2px 12px rgb(0 0 0 / .45); }
 body.walled nav.places { background: rgb(255 255 255 / .14); backdrop-filter: blur(10px); }
 body.walled nav.places button { color: rgb(255 255 255 / .78); }
 body.walled nav.places button[aria-current="page"] { background: rgb(255 255 255 / .92); color: #1b2820; }

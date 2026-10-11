@@ -75,8 +75,11 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   `settings` holds `landscape` (what the page shows) and `landscape_job`
   (painting, animating, ready, failed). The prompts are fixed text
   (`STILL_PROMPT`, `MOTION_PROMPT` in `src/landscape.js`): nothing Roy types
-  goes to OpenAI or Gemini. The landscape fills the whole Garden page as a
-  wallpaper, as on Roy OS (Roy: "I want the garden to fill the whole page
+  goes to OpenAI or Gemini. The landscape is the wallpaper of every page
+  (Roy: "the image should be used for the whole garden as background not just
+  the garden tab"): over it the app wears its dark colours with see-through
+  cards, and the picture is dimmed except on the Garden page. It first came
+  to the Garden page only, as on Roy OS (Roy: "I want the garden to fill the whole page
   similar to the roy os landing page. just make sure my plants visible"): a
   fixed `#wall` behind the page plays the loop muted on repeat over the still
   (with reduced motion only the still), the header turns to glass, and the
@@ -127,3 +130,6 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
 - **11 Oct 2026, the garden fills the page.** Roy painted the first landscape
   (still and loop ready in about a minute). The Garden page is now full-bleed
   like Roy OS's landing page, with the finished plants standing on it.
+- **11 Oct 2026, the landscape behind every page.** Greenhouse, Manage and the
+  plant pages too, with see-through dark cards; the loop keeps playing when
+  moving between pages.

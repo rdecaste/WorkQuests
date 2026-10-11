@@ -166,9 +166,9 @@ function greenhouseView() {
     </div>`).join('')}`;
 }
 
-// The Garden page's wallpaper: the empty Velune landscape filling the whole page, as on Roy OS
-// (OpenAI's still with Gemini's loop over it, src/landscape.js), the finished plants standing on it.
-// #wall lives outside the view, so a re-render doesn't restart the loop. Reduced motion: the still only.
+// The wallpaper of every page: the empty Velune landscape, as on Roy OS (OpenAI's still with Gemini's
+// loop over it, src/landscape.js); on the Garden page the finished plants stand on it. #wall lives
+// outside the view, so moving between pages doesn't restart the loop. Reduced motion: the still only.
 const stillOnly = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const landBusy = () => ['painting', 'animating'].includes(state.landscape?.status);
 const $wall = document.getElementById('wall');
@@ -176,15 +176,16 @@ let wallKey = null;
 // The stage fills the screen under the header, so the plants stand at the bottom of the first view.
 const fitStage = () => document.body.style.setProperty('--head', document.querySelector('header.top').offsetHeight + 'px');
 window.addEventListener('resize', fitStage);
-function setWall(on) {
-  document.body.classList.toggle('walled', on);
-  if (on) fitStage();
-  $wall.hidden = !on;
-  const L = on ? state.landscape || {} : {};
-  const key = on ? `${L.still}|${L.clip}|${stillOnly()}` : null;
+function setWall(gardenPage) {
+  document.body.classList.add('walled');
+  document.body.classList.toggle('garden-page', gardenPage);
+  if (gardenPage) fitStage();
+  $wall.hidden = false;
+  const L = state.landscape || {};
+  const key = `${L.still}|${L.clip}|${stillOnly()}`;
   if (key === wallKey) return;
   wallKey = key;
-  $wall.innerHTML = on && L.still ? `<img src="${esc(L.still)}" alt="">${L.clip && !stillOnly() ? `<video src="${esc(L.clip)}" poster="${esc(L.still)}" autoplay muted loop playsinline disablepictureinpicture></video>` : ''}` : '';
+  $wall.innerHTML = L.still ? `<img src="${esc(L.still)}" alt="">${L.clip && !stillOnly() ? `<video src="${esc(L.clip)}" poster="${esc(L.still)}" autoplay muted loop playsinline disablepictureinpicture></video>` : ''}` : '';
 }
 function landNote() {
   const L = state.landscape || { status: 'none' };
