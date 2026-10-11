@@ -21,7 +21,7 @@
     // application's audience tag (Zero Trust → Access → Applications → the app → Overview).
     // Without both, and the ALLOWED_EMAILS secret, the Worker lets no one in.
     "ACCESS_TEAM": "billowing-boat-2009",
-    "ACCESS_AUD": ""
+    "ACCESS_AUD": "ba6b77f77ea2237fb44beb1b89cf7975bb767cc97d4f645f18d41a7e22b17fa8"
   }
   // Secrets (npx wrangler secret put NAME):
   //   ALLOWED_EMAILS  who may use it, comma-separated

@@ -53,7 +53,9 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
 
 - Worker `work-garden`; D1 `work-garden` (id `5d19a52b-ebc2-43a5-8320-f370d6c52dc1`,
   Western Europe), schema `migrations/0001_garden.sql` applied 11 Oct 2026.
-- Vars: `ACCESS_TEAM`, `ACCESS_AUD`. Secrets: `ALLOWED_EMAILS`; later
+- Address: `work-garden.quest-engine.workers.dev`. Access on the Worker's Access tab: all traffic,
+  policy "Cloudflare account", 7-day sessions (Roy, 11 Oct 2026).
+- Vars: `ACCESS_TEAM`, `ACCESS_AUD` (the Access app's audience tag). Secrets: `ALLOWED_EMAILS`; later
   `OPENAI_API_KEY`, `GEMINI_API_KEY`.
 
 ## Change log
@@ -63,3 +65,6 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   version 20 (Greenhouse with Group by Status / Cadence, Garden scene, Manage
   kanban, plant page with check-in, follow-ups, branches, seasons and
   milestones, quick find). D1 database created and migrated.
+- **11 Oct 2026.** Workers Builds connected to `main`; tests no longer touch
+  the network (a build failed when one reached the real cloudflareaccess.com).
+  Access turned on; `ACCESS_AUD` set.
