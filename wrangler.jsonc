@@ -1,0 +1,29 @@
+{
+  // Work Garden: one Worker, its page and its D1 database, behind Cloudflare Access.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "work-garden",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-20",
+  "observability": { "enabled": true },
+  // The page. run_worker_first: every request, the page included, goes
+  // through the Access check in src/access.js first.
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "work-garden",
+      "database_id": "5d19a52b-ebc2-43a5-8320-f370d6c52dc1",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // The Access team (billowing-boat-2009.cloudflareaccess.com) and the
+    // application's audience tag (Zero Trust → Access → Applications → the app → Overview).
+    // Without both, and the ALLOWED_EMAILS secret, the Worker lets no one in.
+    "ACCESS_TEAM": "billowing-boat-2009",
+    "ACCESS_AUD": ""
+  }
+  // Secrets (npx wrangler secret put NAME):
+  //   ALLOWED_EMAILS  who may use it, comma-separated
+  // Later steps: OPENAI_API_KEY (step 2 and 3), GEMINI_API_KEY (step 3).
+}

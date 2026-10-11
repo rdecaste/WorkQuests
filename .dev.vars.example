@@ -1,0 +1,2 @@
+# Copy to .dev.vars for `npx wrangler dev`. Skips the Access check, on localhost only.
+DEV_SKIP_ACCESS=1

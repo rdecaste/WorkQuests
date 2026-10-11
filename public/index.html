@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Work Garden</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230f0c1d'/%3E%3Cpath d='M50 82 Q44 60 52 40' stroke='%235fc27b' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='54' cy='34' r='12' fill='%235fc27b'/%3E%3C/svg%3E">
+<script type="module" src="/app.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <button class="brand" id="home" type="button" aria-label="Greenhouse"><span class="logo" id="logo"></span><b>Work Garden</b></button>
+    <nav class="places" id="places" aria-label="Places"></nav>
+    <div class="find"><input id="find" type="search" placeholder="Find a plant" aria-label="Find a plant" autocomplete="off"><kbd aria-hidden="true">/</kbd><div class="find-results" id="find-results" hidden></div></div>
+    <span class="today" id="today"></span>
+  </header>
+  <main id="view"><p class="hint">Opening the greenhouse…</p></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><radialGradient id="hesper" cx=".35" cy=".35" r=".7"><stop offset="0" stop-color="hsl(28 80% 66%)"/><stop offset="1" stop-color="hsl(330 45% 28%)"/></radialGradient></defs></svg>
+</body>
+</html>
