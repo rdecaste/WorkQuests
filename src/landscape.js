@@ -2,9 +2,11 @@
 // the garden landscape (no plants) but should look alive. use open ai for the
 // image and gemini for the motion").
 //
-// One wide night panorama of Velune's five biomes, empty, painted by OpenAI
-// (IMAGE_MODEL, as Roy OS's weekly world), then turned into a seamless loop by
-// Gemini (VIDEO_MODEL, omni like Roy OS). Both go to the R2 bucket
+// One wide night panorama of Velune's five biomes, empty, painted by OpenAI,
+// then turned into a seamless loop by Gemini. Roy OS paints both with its own
+// keys and models (its Studio entrypoint, binding STUDIO; Roy, 11 Oct 2026:
+// "can't you reuse the keys from the roy os?"); without that binding this
+// Worker calls OpenAI and Gemini itself with its own keys. Both go to the R2 bucket
 // work-garden-media under landscape/ and are served by this Worker at /media/…
 // behind the sign-in. The GardenScene Workflow (src/entry.js) runs the steps;
 // each paid step runs once. Nothing about Roy's work goes into a prompt: the
@@ -65,7 +67,7 @@ export async function landscapeState(db, now = Date.now()) {
 // POST /api/landscape: start painting (or repainting). Refused while a job runs.
 export async function startLandscape(env, now = Date.now()) {
   if (!env.GARDEN_SCENE || !env.MEDIA) return { status: 503, body: { error: 'The landscape is not set up on this Worker.' } };
-  if (!env.OPENAI_API_KEY) return { status: 503, body: { error: 'Add the OPENAI_API_KEY secret to paint the landscape.' } };
+  if (!env.STUDIO && !env.OPENAI_API_KEY) return { status: 503, body: { error: 'Nothing to paint with: connect Roy OS (STUDIO) or add OPENAI_API_KEY.' } };
   const { status } = await landscapeState(env.DB, now);
   if (status === 'painting' || status === 'animating') return { status: 409, body: { error: 'The landscape is already being painted.' } };
   const stamp = new Date(now).toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'z').toLowerCase();
@@ -93,6 +95,7 @@ function fromBase64(b64) {
   return out;
 }
 export async function paintStill(env) {
+  if (env.STUDIO) return new Uint8Array(await env.STUDIO.still(STILL_PROMPT));
   const model = env.IMAGE_MODEL || IMAGE_MODEL;
   let res, data;
   for (const size of SIZES) {
@@ -126,6 +129,7 @@ function findVideo(node) {
   return null;
 }
 export async function animate(env, imageUrl) {
+  if (env.STUDIO) return new Uint8Array(await env.STUDIO.clip(imageUrl, MOTION_PROMPT));
   if (!env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not set');
   let result = await gemini(env, 'POST', '/interactions', {
     model: env.VIDEO_MODEL || VIDEO_MODEL,

@@ -21,6 +21,8 @@
   "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "work-garden-media" }],
   // Paints the landscape: OpenAI still, then Gemini loop (src/landscape.js, class in src/entry.js).
   "workflows": [{ "name": "work-garden-scene", "binding": "GARDEN_SCENE", "class_name": "GardenScene" }],
+  // Roy OS paints the landscape with its keys (its Studio entrypoint, service binding only).
+  "services": [{ "binding": "STUDIO", "service": "royos", "entrypoint": "Studio" }],
   "vars": {
     // The Access team (billowing-boat-2009.cloudflareaccess.com) and the
     // application's audience tag (Zero Trust → Access → Applications → the app → Overview).
@@ -34,7 +36,7 @@
   }
   // Secrets (npx wrangler secret put NAME):
   //   ALLOWED_EMAILS  who may use it, comma-separated
-  //   OPENAI_API_KEY  the landscape still (and AI planting, step 2)
-  //   GEMINI_API_KEY  the landscape loop
+  //   OPENAI_API_KEY, GEMINI_API_KEY  only without the STUDIO binding (Roy OS paints with its own keys);
+  //                   OPENAI_API_KEY again for AI planting (step 2), unless that goes through Roy OS too
   // Models: IMAGE_MODEL and VIDEO_MODEL vars override gpt-image-2.5-flare and gemini-omni-flash-preview.
 }

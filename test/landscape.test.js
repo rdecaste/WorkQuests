@@ -41,7 +41,7 @@ test('Paint starts the Workflow once, and the state shows it painting', async ()
   assert.equal(runs.length, 1);
 });
 
-test('Paint is refused without the OpenAI key or the bindings', async () => {
+test('Paint is refused with nothing to paint with, or without the bindings', async () => {
   assert.equal((await call(landEnv({ OPENAI_API_KEY: '' }).env, 'POST', '/api/landscape', {})).status, 503);
   assert.equal((await call(landEnv({ GARDEN_SCENE: undefined }).env, 'POST', '/api/landscape', {})).status, 503);
 });
@@ -108,4 +108,18 @@ test('painting and animating call OpenAI and Gemini with the fixed prompts only'
   assert.equal(seen[1].body.model, 'gemini-omni-flash-preview');
   assert.equal(seen[1].body.input[1].text, MOTION_PROMPT);
   assert.match(STILL_PROMPT, /no plants/);
+});
+
+test('with Roy OS connected, the Studio paints with the fixed prompts and no keys are needed here', async () => {
+  const asked = [];
+  const STUDIO = {
+    still: async prompt => { asked.push(['still', prompt]); return new Uint8Array([1, 2]); },
+    clip: async (url, prompt) => { asked.push(['clip', url, prompt]); return new Uint8Array([3]); }
+  };
+  const env = { STUDIO };
+  assert.deepEqual([...await paintStill(env)], [1, 2]);
+  assert.deepEqual([...await animate(env, 'https://garden.example.test/media/landscape/a.jpg?s')], [3]);
+  assert.deepEqual(asked, [['still', STILL_PROMPT], ['clip', 'https://garden.example.test/media/landscape/a.jpg?s', MOTION_PROMPT]]);
+  const { env: e2 } = landEnv({ OPENAI_API_KEY: '', GEMINI_API_KEY: '', STUDIO });
+  assert.equal((await call(e2, 'POST', '/api/landscape', {})).status, 200);
 });

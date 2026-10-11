@@ -36,7 +36,7 @@ export class GardenScene extends WorkflowEntrypoint {
     }
     await step.do('animating', CHEAP, () => setJob(env.DB, { status: 'animating', started_at: new Date().toISOString(), error: null }));
     let clipKey = null, error = null;
-    if (!env.GEMINI_API_KEY) error = 'No GEMINI_API_KEY: the still only';
+    if (!env.STUDIO && !env.GEMINI_API_KEY) error = 'No STUDIO or GEMINI_API_KEY: the still only';
     else {
       try {
         clipKey = await step.do('clip', ONCE_PAID, async () => {

@@ -63,7 +63,9 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   image and gemini for the motion"). The Garden page shows an empty night
   panorama of Velune's five biomes. **✦ Paint the landscape** (later
   "Repaint", which asks first because it is paid) calls `POST /api/landscape`,
-  which starts the `GardenScene` Workflow (`src/entry.js`): OpenAI
+  which starts the `GardenScene` Workflow (`src/entry.js`). Roy OS paints
+  with its own keys (service binding `STUDIO` to its `Studio` entrypoint; Roy:
+  "can't you reuse the keys from the roy os?"): OpenAI
   `gpt-image-2.5-flare` paints the still (2048×1152, as Roy OS), then Gemini
   `gemini-omni-flash-preview` turns it into a seamless loop (it reads the still
   from a signed `/media/…?exp=&sig=` address that works for 30 minutes). Each
@@ -88,8 +90,10 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   Worker's `GardenPass` entrypoint. Deploy this Worker first when the entrypoint changes.
 - R2 bucket `work-garden-media` (made 11 Oct 2026, location ENAM, default jurisdiction: it only
   holds pictures of Velune, no work text), binding `MEDIA`. Workflow `work-garden-scene`, binding `GARDEN_SCENE`.
+- Service binding `STUDIO` → Worker `royos`, entrypoint `Studio` (Roy OS's keys paint the landscape).
+  Deploy Roy OS first when `Studio` changes.
 - Vars: `ACCESS_TEAM`, `ACCESS_AUD` (the Access app's audience tag), `ROYOS_URL`, `PUBLIC_URL`; optional `IMAGE_MODEL`,
-  `VIDEO_MODEL`. Secrets: `ALLOWED_EMAILS`, `OPENAI_API_KEY`, `GEMINI_API_KEY`.
+  `VIDEO_MODEL`. Secrets: `ALLOWED_EMAILS`; `OPENAI_API_KEY` and `GEMINI_API_KEY` only if `STUDIO` is removed.
 
 ## Change log
 
@@ -109,5 +113,8 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
 - **11 Oct 2026, the living landscape.** Roy, now in from his work laptop, asked
   for an image behind the empty Garden page that looks alive. Paint button,
   `POST /api/landscape`, `GardenScene` Workflow (OpenAI still, Gemini loop),
-  `/media/…` from R2, `landscape` in the state. Needs the `OPENAI_API_KEY` and
-  `GEMINI_API_KEY` secrets.
+  `/media/…` from R2, `landscape` in the state.
+- **11 Oct 2026, painted with Roy OS's keys.** Secrets can't be read back to
+  copy, so Roy OS's new `Studio` entrypoint paints the still and the loop with
+  its keys and the weekly world's functions (rdecaste/RoyOS `src/studio.js`);
+  no keys needed here.
