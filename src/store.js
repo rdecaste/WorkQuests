@@ -1,5 +1,6 @@
 // Reading the garden out of D1, in the shape the page works with
 // (see public/shared/rules.js), and the small helpers the writes share.
+import { landscapeState } from './landscape.js';
 import { amsterdamDay, mondayOf, nextMonday, health } from '../public/shared/rules.js';
 
 export const now = () => new Date().toISOString();
@@ -48,7 +49,8 @@ export async function buildState(env, { today = amsterdamDay() } = {}) {
   };
   return {
     today, lastMonday: mondayOf(today), nextMonday: nextMonday(today),
-    pictures: false, // OpenAI pictures and the living garden arrive in build step 3
+    pictures: false, // OpenAI pictures of the plants arrive in build step 3
+    landscape: await landscapeState(db), // the empty Velune landscape behind the Garden page
     salt: ko.salt, keepOut: ko.words,
     plants: plants.map(row => shapePlant(row, by, today))
   };

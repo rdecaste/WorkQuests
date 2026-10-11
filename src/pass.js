@@ -19,14 +19,14 @@ const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, 
 const random = () => hex(crypto.getRandomValues(new Uint8Array(32)));
 const sha256 = async text => hex(await crypto.subtle.digest('SHA-256', enc.encode(text)));
 
-function sameText(a, b) {
+export function sameText(a, b) {
   a = String(a); b = String(b);
   let diff = a.length ^ b.length;
   for (let i = 0; i < Math.max(a.length, b.length); i++) diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
   return diff === 0;
 }
 
-async function sessionKey(db) {
+export async function sessionKey(db) {
   const have = await db.prepare("SELECT value FROM settings WHERE key = 'session_key'").first('value');
   if (have) return have;
   await db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('session_key', ?)").bind(random()).run();

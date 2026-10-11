@@ -166,15 +166,45 @@ function greenhouseView() {
     </div>`).join('')}`;
 }
 
+// The empty Velune landscape behind the garden: OpenAI's still with Gemini's loop over it
+// (src/landscape.js). With reduced motion only the still shows.
+const stillOnly = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const landBusy = () => ['painting', 'animating'].includes(state.landscape?.status);
+function landscapeHTML() {
+  const L = state.landscape || { status: 'none' };
+  const media = L.still ? `<img class="land-still" src="${esc(L.still)}" alt="">${L.clip && !stillOnly() ? `<video class="land-clip" src="${esc(L.clip)}" poster="${esc(L.still)}" autoplay muted loop playsinline disablepictureinpicture aria-hidden="true"></video>` : ''}` : '';
+  const over = landBusy() ? `<span class="land-note">${L.status === 'painting' ? 'Painting Velune' : 'Bringing it to life'}… this takes a few minutes.</span>`
+    : L.status === 'failed' ? `<span class="land-note">The painting didn't work this time. <button class="linkish" type="button" data-landscape>Try again</button></span>`
+    : !L.still ? `<button class="btn primary" type="button" data-landscape>✦ Paint the landscape</button>` : '';
+  return `<div class="land${L.still ? '' : ' empty'}" role="img" aria-label="Velune at night, five biomes side by side">${media}${over ? `<div class="land-over">${over}</div>` : ''}</div>`;
+}
+let landTimer = null;
+function watchLandscape() {
+  clearTimeout(landTimer);
+  if (!landBusy()) return;
+  landTimer = setTimeout(async () => {
+    const fresh = await fetch('/api/garden', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).catch(() => null);
+    if (fresh) {
+      const changed = JSON.stringify(fresh.landscape) !== JSON.stringify(state.landscape);
+      setState(fresh);
+      if (changed && route.name === 'garden') renderKeepingFocus();
+    }
+    watchLandscape();
+  }, 20000);
+}
+
 function gardenView() {
   const done = plants.filter(p => placeOf(p) === 'garden').sort((a, b) => (a.done.date < b.done.date ? -1 : 1));
   const first = done.slice().sort((a, b) => (a.planted < b.planted ? -1 : 1))[0];
+  const L = state.landscape || {};
   return `
     <div class="summary"><div><h1>The garden</h1><p>Everything you grew to the end. It stays as it was on its last day; nothing here needs a check-in.</p></div></div>
+    ${landscapeHTML()}
     ${done.length ? `<div class="scene-wrap">${gardenScene(done)}</div>
     <div class="scene-caption"><span>${done.length} plant${done.length > 1 ? 's' : ''} grown since ${fmt(first.planted, { month: 'long', year: 'numeric' })}, all on Velune</span><span>Tap a plant to open it</span></div>
     <div class="done-list">${done.slice().reverse().map(p => `<button class="done-row" type="button" data-plant="${p.id}">${thumb(p)}<div><b>${esc(p.name)}</b> <span class="species-name">${esc(p.species.name)}</span><div class="out">${esc(p.done.note)}</div></div><span class="dates">${short(p.planted)} → ${short(p.done.date)}</span></button>`).join('')}</div>`
-    : '<p class="hint">Nothing finished yet. Plants you mark Done, or people you plant out, settle here.</p>'}`;
+    : '<p class="hint">Nothing finished yet. Plants you mark Done, or people you plant out, settle here.</p>'}
+    ${L.still && !landBusy() ? '<p class="land-foot"><button class="linkish" type="button" data-landscape>Repaint the landscape</button></p>' : ''}`;
 }
 
 let mfilter = 'all', msearch = '';
@@ -596,6 +626,11 @@ $view.addEventListener('click', async e => {
     if (await send('POST', `/api/branches/${encodeURIComponent(w.id)}/done`)) { toast(`Branch done: ${w.title}`); render(); }
     return;
   }
+  if ('landscape' in t.dataset) {
+    if (state.landscape?.still && !confirm('Paint a new landscape? OpenAI paints it and Gemini brings it to life, both paid. The current one stays until the new one is ready.')) return;
+    if (await send('POST', '/api/landscape')) { toast('Painting Velune: it shows up here in a few minutes'); render(); watchLandscape(); }
+    return;
+  }
   if (t.dataset.plant) { openPlant(t.dataset.plant); return; }
   if (t.dataset.plantidea) { np = newPlant(byId(t.dataset.plantidea)); go({ name: 'new' }); return; }
   if (t.dataset.discard) { const idea = byId(t.dataset.discard); if (await send('DELETE', `/api/ideas/${encodeURIComponent(idea.id)}`)) { toast(`Discarded "${idea.name}"`); render(); } return; }
@@ -848,4 +883,5 @@ document.getElementById('logo').innerHTML = alienSVG(CATALOGUE[0], 4, 'thriving'
   route = parseHash();
   if (route.name === 'manage') loadRewording();
   render();
+  watchLandscape();
 })();

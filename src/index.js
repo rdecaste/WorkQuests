@@ -3,12 +3,14 @@
 // or with a Cloudflare Access token (src/access.js).
 //
 //   GET  /pass?t=…         a pass from Roy OS → the cookie, then the page
+//   GET  /media/landscape/…  the landscape still and loop from R2 (signed in, or a signed address for Gemini)
 // Everything else needs the cookie or an Access token:
 //   /                      the page (public/: index.html, app.js, draw.js, style.css, shared/)
 //   GET  /api/garden       everything the page shows
 //   POST /api/plants, PATCH /api/plants/:id, POST /api/plants/:id/{checkin,need,park,revive,done,season,branches}
 //   POST /api/branches/:id/{updates,done}, POST /api/follow-ups/:id/{clear,unclear}
 //   POST /api/ideas, DELETE /api/ideas/:id (hides it; nothing is deleted)
+//   POST /api/landscape     paint (or repaint) the garden's landscape (src/landscape.js)
 //   PATCH /api/seasons/:id, POST /api/seasons/:id/milestones, POST /api/milestones/:id/toggle
 //   GET /api/guard, POST /api/guard/words, DELETE /api/guard/words/:hash, POST /api/reword
 //   GET  /api/export       every table as JSON
@@ -16,6 +18,7 @@
 import { checkAccess } from './access.js';
 import { api } from './api.js';
 import { passRoute, hasSession } from './pass.js';
+import { mediaRoute } from './landscape.js';
 
 const SECURITY = {
   'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
@@ -35,6 +38,9 @@ export default {
     const url = new URL(request.url);
     const pass = await passRoute(request, env);
     if (pass) return secure(pass);
+    const signedIn = async () => (await checkAccess(request, env)).ok || hasSession(request, env.DB);
+    const media = await mediaRoute(request, env, signedIn);
+    if (media) return secure(media);
     let who = await checkAccess(request, env);
     if (!who.ok && await hasSession(request, env.DB)) who = { ok: true, email: null };
     if (!who.ok) {

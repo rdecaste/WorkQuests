@@ -3,6 +3,7 @@
 import { TYPES, amsterdamDay, addDays, isDate, cadenceName } from '../public/shared/rules.js';
 import { check, say } from '../public/shared/guard.js';
 import { cleanSpecies } from '../public/shared/velune.js';
+import { startLandscape } from './landscape.js';
 import { buildState, keepOut, allText, TEXT_FIELDS, now, newId } from './store.js';
 
 export const ROUTES = [
@@ -29,6 +30,7 @@ export const ROUTES = [
   ['POST', '/api/guard/words', guardWordAdd],
   ['DELETE', '/api/guard/words/:hash', guardWordRemove],
   ['POST', '/api/reword', reword],
+  ['POST', '/api/landscape', landscapeStart],
   ['GET', '/api/export', exportAll]
 ];
 
@@ -116,6 +118,13 @@ const fresh = ctx => buildState(ctx.env, { today: ctx.today });
 
 // ---- handlers ----
 function garden(ctx) { return fresh(ctx); }
+
+// Paints the empty Velune landscape behind the Garden page: an OpenAI still, then a Gemini loop.
+async function landscapeStart(ctx) {
+  const refused = await startLandscape(ctx.env);
+  if (refused) throw new HttpError(refused.status, refused.body);
+  return fresh(ctx);
+}
 
 function readMilestones(list, today) {
   if (list == null) return [];

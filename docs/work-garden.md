@@ -10,7 +10,7 @@ changed.
 |---|---|---|
 | 1 | Plants, ideas, check-ins, health, Greenhouse / Garden / Manage, guard, Access | Built 11 Oct 2026 |
 | 2 | AI planting: species, lore and special need drafted by OpenAI | Next |
-| 3 | Monday scoring, OpenAI pictures, garden scene, Gemini clip | Later; confirm the Gemini model and price first |
+| 3 | Monday scoring, OpenAI pictures, garden scene, Gemini clip | The empty landscape (still + loop) built 11 Oct 2026; the rest later |
 | 4 | Seasons: AI-drafted season reviews (seasons themselves work since step 1) | Later |
 | 5 | Backups (nightly to R2, like quest-engine) | Later |
 
@@ -58,6 +58,23 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   `POST /api/reword` replaces it.
 - **Nothing is deleted.** Discarded ideas are hidden (`place = 'discarded'`),
   milestones taken out in Edit are marked `removed`.
+- **The landscape** (Roy, 11 Oct 2026: "an image in the background with the
+  garden landscape (no plants) but should look alive. use open ai for the
+  image and gemini for the motion"). The Garden page shows an empty night
+  panorama of Velune's five biomes. **✦ Paint the landscape** (later
+  "Repaint", which asks first because it is paid) calls `POST /api/landscape`,
+  which starts the `GardenScene` Workflow (`src/entry.js`): OpenAI
+  `gpt-image-2.5-flare` paints the still (2048×1152, as Roy OS), then Gemini
+  `gemini-omni-flash-preview` turns it into a seamless loop (it reads the still
+  from a signed `/media/…?exp=&sig=` address that works for 30 minutes). Each
+  paid step runs once; if the loop fails the still shows alone. Both live in
+  R2 `work-garden-media` under `landscape/` and are served at `/media/…`
+  behind the sign-in (with byte ranges for the video); old ones are kept.
+  `settings` holds `landscape` (what the page shows) and `landscape_job`
+  (painting, animating, ready, failed). The prompts are fixed text
+  (`STILL_PROMPT`, `MOTION_PROMPT` in `src/landscape.js`): nothing Roy types
+  goes to OpenAI or Gemini. The page plays the loop muted on repeat over the
+  still; with reduced motion only the still shows.
 - **Export.** `GET /api/export` downloads every table as JSON (link at the
   bottom of Manage); of `settings` only the guard salt.
 
@@ -69,8 +86,10 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   policy "Cloudflare account", 7-day sessions (Roy, 11 Oct 2026).
 - Roy OS (Worker `royos`, repo rdecaste/RoyOS) has a service binding `WORK_GARDEN` to this
   Worker's `GardenPass` entrypoint. Deploy this Worker first when the entrypoint changes.
-- Vars: `ACCESS_TEAM`, `ACCESS_AUD` (the Access app's audience tag), `ROYOS_URL`. Secrets: `ALLOWED_EMAILS`; later
-  `OPENAI_API_KEY`, `GEMINI_API_KEY`.
+- R2 bucket `work-garden-media` (made 11 Oct 2026, location ENAM, default jurisdiction: it only
+  holds pictures of Velune, no work text), binding `MEDIA`. Workflow `work-garden-scene`, binding `GARDEN_SCENE`.
+- Vars: `ACCESS_TEAM`, `ACCESS_AUD` (the Access app's audience tag), `ROYOS_URL`, `PUBLIC_URL`; optional `IMAGE_MODEL`,
+  `VIDEO_MODEL`. Secrets: `ALLOWED_EMAILS`, `OPENAI_API_KEY`, `GEMINI_API_KEY`.
 
 ## Change log
 
@@ -87,3 +106,8 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   (`GardenPass.mint`, `/pass`), which becomes a 12-hour cookie; without one
   the page goes to Roy OS and back. Worker entry is now `src/entry.js`. The
   export no longer includes the sign-in key. Access tokens still work.
+- **11 Oct 2026, the living landscape.** Roy, now in from his work laptop, asked
+  for an image behind the empty Garden page that looks alive. Paint button,
+  `POST /api/landscape`, `GardenScene` Workflow (OpenAI still, Gemini loop),
+  `/media/…` from R2, `landscape` in the state. Needs the `OPENAI_API_KEY` and
+  `GEMINI_API_KEY` secrets.
