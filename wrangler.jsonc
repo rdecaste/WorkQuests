@@ -1,8 +1,9 @@
 {
-  // Work Garden: one Worker, its page and its D1 database, behind Cloudflare Access.
+  // Work Garden: one Worker, its page and its D1 database. You get in through Roy OS
+  // (a one-time pass over its service binding to GardenPass, src/pass.js) or Cloudflare Access.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "work-garden",
-  "main": "src/index.js",
+  "main": "src/entry.js",
   "compatibility_date": "2026-09-20",
   "observability": { "enabled": true },
   // The page. run_worker_first: every request, the page included, goes
@@ -21,7 +22,9 @@
     // application's audience tag (Zero Trust → Access → Applications → the app → Overview).
     // Without both, and the ALLOWED_EMAILS secret, the Worker lets no one in.
     "ACCESS_TEAM": "billowing-boat-2009",
-    "ACCESS_AUD": "ba6b77f77ea2237fb44beb1b89cf7975bb767cc97d4f645f18d41a7e22b17fa8"
+    "ACCESS_AUD": "ba6b77f77ea2237fb44beb1b89cf7975bb767cc97d4f645f18d41a7e22b17fa8",
+    // Visitors without a session go to Roy OS's /go/garden, which sends them back with a pass.
+    "ROYOS_URL": "https://royos.quest-engine.workers.dev"
   }
   // Secrets (npx wrangler secret put NAME):
   //   ALLOWED_EMAILS  who may use it, comma-separated

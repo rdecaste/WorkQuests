@@ -22,11 +22,23 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
 
 ## How it works
 
-- **Access.** Every request, the page included (`run_worker_first`), goes
-  through `src/access.js`: the `Cf-Access-Jwt-Assertion` token must be signed
-  by the Access team `billowing-boat-2009`, carry the app's audience tag
-  (`ACCESS_AUD`) and an email in the `ALLOWED_EMAILS` secret. Missing any of
-  them, nobody gets in.
+- **Getting in: through Roy OS** (Roy, 11 Oct 2026: "my RoyOS should have
+  the access layer, from there I should be able to navigate to the other
+  pages"). Every request, the page included (`run_worker_first`), needs a
+  `garden_session` cookie or an Access token. Roy OS's menu link goes to its
+  own `/go/garden`, which (only when Roy is signed in on Roy OS) asks this
+  Worker for a pass over a service binding to the `GardenPass` entrypoint
+  (`src/entry.js`; an entrypoint can't be reached from the internet) and
+  sends the browser to `/pass?t=<pass>`. A pass works once, within a minute,
+  and is stored only as a SHA-256 fingerprint (`settings` key `pass:…`).
+  It becomes a 12-hour cookie signed with `session_key` (made once, kept in
+  `settings`, never exported). Without a session the page sends the browser
+  to Roy OS's `/go/garden`, which comes straight back with a pass or shows
+  Roy OS's sign-in, so it stays one tap; the API answers 401. Code:
+  `src/pass.js`.
+- **Access** still works next to it: a `Cf-Access-Jwt-Assertion` token signed
+  by the Access team `billowing-boat-2009`, with the app's audience tag
+  (`ACCESS_AUD`) and an email in the `ALLOWED_EMAILS` secret (`src/access.js`).
 - **Writes** must be JSON from the same origin (no cross-site forms).
 - **State.** `GET /api/garden` returns everything in the shape the page uses
   (`buildState` in `src/store.js`); every write answers with the same fresh
@@ -47,7 +59,7 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
 - **Nothing is deleted.** Discarded ideas are hidden (`place = 'discarded'`),
   milestones taken out in Edit are marked `removed`.
 - **Export.** `GET /api/export` downloads every table as JSON (link at the
-  bottom of Manage).
+  bottom of Manage); of `settings` only the guard salt.
 
 ## Cloudflare
 
@@ -55,7 +67,9 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   Western Europe), schema `migrations/0001_garden.sql` applied 11 Oct 2026.
 - Address: `work-garden.quest-engine.workers.dev`. Access on the Worker's Access tab: all traffic,
   policy "Cloudflare account", 7-day sessions (Roy, 11 Oct 2026).
-- Vars: `ACCESS_TEAM`, `ACCESS_AUD` (the Access app's audience tag). Secrets: `ALLOWED_EMAILS`; later
+- Roy OS (Worker `royos`, repo rdecaste/RoyOS) has a service binding `WORK_GARDEN` to this
+  Worker's `GardenPass` entrypoint. Deploy this Worker first when the entrypoint changes.
+- Vars: `ACCESS_TEAM`, `ACCESS_AUD` (the Access app's audience tag), `ROYOS_URL`. Secrets: `ALLOWED_EMAILS`; later
   `OPENAI_API_KEY`, `GEMINI_API_KEY`.
 
 ## Change log
@@ -68,3 +82,8 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
 - **11 Oct 2026.** Workers Builds connected to `main`; tests no longer touch
   the network (a build failed when one reached the real cloudflareaccess.com).
   Access turned on; `ACCESS_AUD` set.
+- **11 Oct 2026, in through Roy OS.** Roy's work laptop can't use the Access
+  login, and Roy OS already works there. Roy OS hands over a one-time pass
+  (`GardenPass.mint`, `/pass`), which becomes a 12-hour cookie; without one
+  the page goes to Roy OS and back. Worker entry is now `src/entry.js`. The
+  export no longer includes the sign-in key. Access tokens still work.

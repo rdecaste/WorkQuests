@@ -416,7 +416,8 @@ async function reword(ctx) {
 // Everything, as JSON, for keeping a copy yourself.
 async function exportAll(ctx) {
   const tables = ['plants', 'seasons', 'milestones', 'branches', 'branch_updates', 'entries', 'follow_ups', 'weeks', 'garden_versions', 'guard_words', 'settings'];
-  const results = await ctx.db.batch(tables.map(t => ctx.db.prepare(`SELECT * FROM ${t}`)));
+  // Of settings only the guard salt (needed to read guard_words back); the sign-in key and passes stay out.
+  const results = await ctx.db.batch(tables.map(t => ctx.db.prepare(t === 'settings' ? "SELECT * FROM settings WHERE key = 'guard_salt'" : `SELECT * FROM ${t}`)));
   const out = { exported_at: ctx.at, ...Object.fromEntries(tables.map((t, i) => [t, results[i].results])) };
   return json(out, 200, { 'content-disposition': `attachment; filename="work-garden-${ctx.today}.json"` });
 }
