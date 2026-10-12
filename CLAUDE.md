@@ -26,7 +26,9 @@ every change. The agreed design is `docs/proposal.md`.
   milestones `removed = 1`.
 - Growth is never previewed and no levels are shown; new Monday pictures stay
   veiled until revealed.
-- Not a project management tool: no assigning people to initiatives.
+- Not a project management tool: no assigning, roles or due dates. The one
+  link (Roy, 12 Oct 2026) is a person's branch pointing to a project plant,
+  which then lists that person under "People on it".
 - Roy's rules: step by step, no data loss, and ask him before any change to
   live data or any switch.
 

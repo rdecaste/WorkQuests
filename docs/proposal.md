@@ -161,7 +161,8 @@ short updates: every branch has its own update box with an **Add** button.
 A closed branch shows its latest update; opening it (tap its name) shows the
 whole history. **Done** moves the branch to
 a "Done" line. Branch updates also appear in the plant's log, marked with the
-branch name. It is a note, not an assignment: no links to project plants, no
+branch name. It is a note, not an assignment (since 12 Oct 2026 it may point to a project
+plant, see `docs/work-garden.md`): no
 roles, no due dates. Their Greenhouse tile shows the current branches. In the
 Monday picture each current branch is a branch of the plant (named nowhere),
 so adding one shows up the next Monday. When planting a person, the AI may

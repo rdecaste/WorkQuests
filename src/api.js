@@ -18,6 +18,7 @@ export const ROUTES = [
   ['POST', '/api/plants/:id/branches', branchNew],
   ['POST', '/api/branches/:id/updates', branchUpdate],
   ['POST', '/api/branches/:id/done', branchDone],
+  ['POST', '/api/branches/:id/link', branchLink],
   ['POST', '/api/follow-ups/:id/clear', followClear],
   ['POST', '/api/follow-ups/:id/unclear', followUnclear],
   ['POST', '/api/ideas', ideaNew],
@@ -306,8 +307,24 @@ async function branchNew(ctx) {
   const p = await plantRow(ctx.db, ctx.params.id, ['greenhouse']);
   if (p.type !== 'person') bad('Branches are for people');
   const title = str(ctx.body.title, 120, 'Branch', true);
+  const project = ctx.body.projectId ? await projectRow(ctx.db, ctx.body.projectId) : null;
   await guard(ctx.db, { Branch: title });
-  await ctx.db.batch([ctx.db.prepare('INSERT INTO branches (id, plant_id, title, started_on) VALUES (?, ?, ?, ?)').bind(newId(), p.id, title, ctx.today), touched(ctx, p.id)]);
+  await ctx.db.batch([ctx.db.prepare('INSERT INTO branches (id, plant_id, title, started_on, project_id) VALUES (?, ?, ?, ?, ?)').bind(newId(), p.id, title, ctx.today, project?.id ?? null), touched(ctx, p.id)]);
+  return fresh(ctx);
+}
+
+// The project or initiative a branch may point to: growing or parked.
+async function projectRow(db, id) {
+  const p = await plantRow(db, String(id), ['greenhouse', 'shed']);
+  if (p.type === 'person') bad('A branch can point to a project or an initiative, not a person');
+  return p;
+}
+
+// Point a branch at a project, or (projectId null) back to a plain branch.
+async function branchLink(ctx) {
+  const b = await branchRow(ctx.db, ctx.params.id);
+  const project = ctx.body.projectId ? await projectRow(ctx.db, ctx.body.projectId) : null;
+  await ctx.db.batch([ctx.db.prepare('UPDATE branches SET project_id = ? WHERE id = ?').bind(project?.id ?? null, b.id), touched(ctx, b.plant_id)]);
   return fresh(ctx);
 }
 
@@ -321,7 +338,7 @@ async function branchRow(db, id) {
 
 async function branchUpdate(ctx) {
   const b = await branchRow(ctx.db, ctx.params.id);
-  const text = str(ctx.body.text, 500, 'Update', true);
+  const text = str(ctx.body.text, 2000, 'Update', true);
   await guard(ctx.db, { Update: text });
   await ctx.db.batch([ctx.db.prepare('INSERT INTO branch_updates (id, branch_id, happened_on, text, created_at) VALUES (?, ?, ?, ?, ?)').bind(newId(), b.id, ctx.today, text, ctx.at), cared(ctx, b.plant_id)]);
   return fresh(ctx);

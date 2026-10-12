@@ -53,8 +53,25 @@ export async function buildState(env, { today = amsterdamDay() } = {}) {
     landscape: await landscapeState(db), // the empty Velune landscape behind the Garden page
     royos: env.ROYOS_URL || null, // the header's link back to Roy OS
     salt: ko.salt, keepOut: ko.words,
-    plants: plants.map(row => shapePlant(row, by, today))
+    plants: linkPeople(plants.map(row => shapePlant(row, by, today)))
   };
+}
+
+// A project's "People on it": every live person with a current branch that
+// points to it, with that branch's latest update.
+function linkPeople(list) {
+  const byId = new Map(list.map(p => [p.id, p]));
+  for (const p of list) if (p.type !== 'person' && p.place !== 'idea') p.people = [];
+  for (const person of list) {
+    if (person.type !== 'person' || !['greenhouse', 'shed'].includes(person.place)) continue;
+    for (const w of person.work || []) {
+      const project = w.project && byId.get(w.project);
+      if (w.ended || !project?.people) continue;
+      const last = w.updates[0];
+      project.people.push({ plant: person.id, name: person.name, branch: w.id, title: w.title, date: last?.date || null, text: last?.text || '' });
+    }
+  }
+  return list;
 }
 
 function shapePlant(row, by, today) {
@@ -73,7 +90,7 @@ function shapePlant(row, by, today) {
   } else {
     p.milestones = mss.filter(m => !m.season_id).map(ms);
   }
-  p.work = by.branches(row.id).map(b => ({ id: b.id, title: b.title, since: b.started_on, ended: b.done_on || null, updates: by.updates(b.id).map(u => ({ id: u.id, date: u.happened_on, text: u.text })) }));
+  p.work = by.branches(row.id).map(b => ({ id: b.id, title: b.title, project: b.project_id || null, since: b.started_on, ended: b.done_on || null, updates: by.updates(b.id).map(u => ({ id: u.id, date: u.happened_on, text: u.text })) }));
   const fu = by.follow(row.id);
   p.todos = fu.map(f => ({ id: f.id, text: f.text, added: f.added_on, closed: f.cleared_on || null }));
   // A ticked follow-up shows in the log on the day it was ticked.
@@ -104,7 +121,7 @@ export const TEXT_FIELDS = {
   'seasons.review': { label: 'Season review', max: 2000 },
   'milestones.title': { label: 'Milestone', required: true, max: 120 },
   'branches.title': { label: 'Branch', required: true, max: 120 },
-  'branch_updates.text': { label: 'Branch update', required: true, max: 500 },
+  'branch_updates.text': { label: 'Branch update', required: true, max: 2000 },
   'entries.going_on': { label: 'How it was going', max: 500 },
   'entries.note': { label: 'Log note', max: 500 },
   'follow_ups.text': { label: 'Follow-up', required: true, max: 300 }

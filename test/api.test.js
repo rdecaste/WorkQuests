@@ -221,3 +221,36 @@ test('export has every table', async () => {
   assert.equal(r.body.plants.length, 1);
   for (const t of ['seasons', 'entries', 'follow_ups', 'guard_words', 'settings']) assert.ok(Array.isArray(r.body[t]), t);
 });
+
+test('a branch can point to a project, which then shows who is on it', async () => {
+  const env = makeEnv();
+  const s = await plantPerson(env);
+  const proj = (await call(env, 'POST', '/api/plants', { name: 'Onboarding revamp', type: 'project', cadence: 14, species: SPECIES })).body.id;
+  let g = (await call(env, 'POST', `/api/plants/${s.id}/branches`, { title: 'Onboarding revamp', projectId: proj })).body;
+  const b = find(g, s.id).work[0];
+  assert.equal(b.project, proj);
+  assert.deepEqual(find(g, proj).people, [{ plant: s.id, name: 'Lars Meijer', branch: b.id, title: 'Onboarding revamp', date: null, text: '' }]);
+  const long = 'Buddy rota is live.\n' + 'Two new starters paired this week. '.repeat(30);
+  g = (await call(env, 'POST', `/api/branches/${b.id}/updates`, { text: long })).body;
+  assert.equal(find(g, proj).people[0].text, long.trim());
+  // a plain branch, linked later, then unlinked; a person can't be the target
+  g = (await call(env, 'POST', `/api/plants/${s.id}/branches`, { title: 'Release notes' })).body;
+  const plain = find(g, s.id).work[1];
+  assert.equal(plain.project, null);
+  g = (await call(env, 'POST', `/api/branches/${plain.id}/link`, { projectId: proj })).body;
+  assert.equal(find(g, proj).people.length, 2);
+  g = (await call(env, 'POST', `/api/branches/${plain.id}/link`, { projectId: null })).body;
+  assert.equal(find(g, proj).people.length, 1);
+  assert.equal((await call(env, 'POST', `/api/branches/${plain.id}/link`, { projectId: s.id })).status, 400);
+  // a finished branch leaves the project's list
+  g = (await call(env, 'POST', `/api/branches/${b.id}/done`, {})).body;
+  assert.deepEqual(find(g, proj).people, []);
+});
+
+test('a branch update can be long, up to 2000 characters', async () => {
+  const env = makeEnv();
+  const s = await plantPerson(env);
+  const b = find((await call(env, 'POST', `/api/plants/${s.id}/branches`, { title: 'Docs' })).body, s.id).work[0];
+  assert.equal((await call(env, 'POST', `/api/branches/${b.id}/updates`, { text: 'a'.repeat(2000) })).status, 200);
+  assert.equal((await call(env, 'POST', `/api/branches/${b.id}/updates`, { text: 'a'.repeat(2001) })).status, 400);
+});

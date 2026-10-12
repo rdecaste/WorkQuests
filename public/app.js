@@ -331,16 +331,31 @@ function manageView() {
 
 const openBranches = new Set();
 let adding = null; // 'branch' | 'ms' | 'goal': rare edits open behind a button
+let linking = null; // the branch whose "Link to a project" list is open
+// Projects and initiatives a branch can point to (Roy, 12 Oct 2026: "keep both,
+// but have some connection between both. but keep it simple").
+const linkable = () => plants.filter(x => x.type !== 'person' && ['greenhouse', 'shed'].includes(placeOf(x)));
+const projectChoices = (q, attr) => {
+  q = q.trim().toLowerCase();
+  const hits = linkable().filter(x => !q || x.name.toLowerCase().includes(q)).slice(0, 6);
+  return hits.map(x => `<button type="button" ${attr}="${x.id}"><span aria-hidden="true">🌱</span> ${esc(x.name)}</button>`).join('');
+};
+const wkSuggest = q => { const c = projectChoices(q, 'data-newlink'); return c ? `<div class="b-pick" role="group" aria-label="Or link to a project"><span class="label">Or link to a project</span>${c}</div>` : ''; };
+// Update boxes grow with what's typed.
+const grow = el => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px'; };
 function workHTML(p) {
   const act = activeWork(p), past = (p.work || []).filter(w => w.ended), live = placeOf(p) === 'greenhouse';
   if (!live && !(p.work || []).length) return '';
   const first = esc(firstName(p));
-  const branch = w => { const open = openBranches.has(w.id), shown = open ? w.updates : w.updates.slice(0, 1); return `<li class="branch ${open ? 'open' : ''}">
+  const branch = w => { const open = openBranches.has(w.id), shown = open ? w.updates : w.updates.slice(0, 1), proj = w.project && byId(w.project); return `<li class="branch ${open ? 'open' : ''}">
       <div class="b-head"><button class="b-name" type="button" data-bopen="${w.id}" aria-expanded="${open}">${esc(w.title)}<span class="chev" aria-hidden="true">${open ? '▾' : '▸'}</span></button>
-        ${live ? `<button class="linkish" type="button" data-wrap="${w.id}" aria-label="Done: ${esc(w.title)}">Done</button>` : ''}</div>
-      ${shown.length ? `<ul class="b-hist">${shown.map(u => `<li><span class="d">${short(u.date)}</span>${esc(u.text)}</li>`).join('')}</ul>` : '<div class="b-none">No updates yet</div>'}
+        ${proj ? `<span class="b-link"><button class="chip-link" type="button" data-gplant="${proj.id}" title="Go to ${esc(proj.name)}">🌱 ${proj.name === w.title ? 'Project' : esc(proj.name)}</button>${live ? `<button class="chip-x" type="button" data-unlink="${w.id}" aria-label="Unlink ${esc(proj.name)}" title="Unlink">×</button>` : ''}</span>`
+          : live && linkable().length ? `<button class="linkish quiet small" type="button" data-linking="${w.id}" aria-expanded="${linking === w.id}">Link to a project</button>` : ''}
+        ${live ? `<button class="linkish b-done" type="button" data-wrap="${w.id}" aria-label="Done: ${esc(w.title)}">Done</button>` : ''}</div>
+      ${linking === w.id && !proj ? `<div class="b-pick" role="group" aria-label="Link ${esc(w.title)} to"><span class="label">Link to</span>${projectChoices('', 'data-linkto')}</div>` : ''}
+      ${shown.length ? `<ul class="b-hist">${shown.map(u => `<li><span class="d">${short(u.date)}</span><span class="t">${esc(u.text)}</span></li>`).join('')}</ul>` : '<div class="b-none">No updates yet</div>'}
       ${!open && w.updates.length > 1 ? `<button class="linkish small" type="button" data-bopen="${w.id}">${w.updates.length - 1} earlier update${w.updates.length > 2 ? 's' : ''}</button>` : ''}
-      ${live ? `<form class="b-form" data-branch="${w.id}" novalidate><input id="b-text-${w.id}" placeholder="Update on ${esc(w.title)}" aria-label="Update on ${esc(w.title)}" autocomplete="off" maxlength="500"><button class="btn small" type="submit">Add</button></form>` : ''}
+      ${live ? `<form class="b-form" data-branch="${w.id}" novalidate><textarea id="b-text-${w.id}" rows="1" data-grow placeholder="Update on ${esc(w.title)}" aria-label="Update on ${esc(w.title)}" maxlength="2000"></textarea><button class="btn small" type="submit">Add</button></form>` : ''}
     </li>`; };
   return `<div class="card work">
     <div class="legend"><span class="label">Branches</span><span>What ${first} is working on</span></div>
@@ -349,6 +364,7 @@ function workHTML(p) {
     ${live ? (adding === 'branch' ? `<form class="inline-add three" id="work-form" novalidate>
       <input id="wk-title" placeholder="e.g. the platform migration" aria-label="Something ${first} works on" autocomplete="off" maxlength="120">
       <button class="btn small primary" type="submit">Add branch</button><button class="btn small ghost" type="button" data-adding="">Cancel</button>
+      <div class="wk-suggest" id="wk-suggest">${wkSuggest('')}</div>
     </form>` : `<div><button class="btn small" type="button" data-adding="branch">+ Branch</button></div>`) : ''}
   </div>`;
 }
@@ -411,6 +427,15 @@ function seasonHTML(p) {
   </div>`;
 }
 
+// A project's "People on it": read here, written on the person's branch.
+function peopleHTML(p) {
+  if (!(p.people || []).length) return '';
+  return `<div class="card people-on">
+    <div class="legend"><span class="label">People on it</span><span>From their branches</span></div>
+    <ul class="people">${p.people.map(x => `<li><div class="who"><button class="chip-link person" type="button" data-gplant="${x.plant}">${esc(x.name)}</button>${x.title !== p.name ? `<span class="on">${esc(x.title)}</span>` : ''}<span class="d">${x.date ? short(x.date) : ''}</span></div><span class="t">${x.text ? esc(x.text) : 'No updates yet'}</span></li>`).join('')}</ul>
+  </div>`;
+}
+
 function followupsHTML(p) {
   const shown = (p.todos || []).filter(t => !t.closed || t.closed === TODAY);
   const cleared = (p.todos || []).filter(t => t.closed && t.closed !== TODAY).length;
@@ -427,7 +452,7 @@ function plantView(p) {
   const branchNews = (p.work || []).flatMap(w => w.updates.map(x => ({ kind: 'branch', date: x.date, note: x.text, title: w.title })));
   const logItems = [...p.log, ...branchNews].map((e, i) => ({ e, i })).sort((a, b) => (a.e.date < b.e.date ? 1 : a.e.date > b.e.date ? -1 : a.i - b.i)).map(({ e }) => e).map(e => {
     const date = fmt(e.date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-    if (e.kind === 'branch') return `<li class="marker bnews"><div class="d">${date} · 🌿 ${esc(e.title)}</div><div class="note">${esc(e.note)}</div></li>`;
+    if (e.kind === 'branch') return `<li class="marker bnews"><div class="d">${date} · 🌿 ${esc(e.title)}</div><div class="note pre">${esc(e.note)}</div></li>`;
     if (e.kind === 'checkin' && (e.going || e.follow)) return `<li><div class="d">${date}</div>
       <div class="lines">${e.going ? `<div><span>How it's going</span>${esc(e.going)}</div>` : ''}${e.follow ? `<div><span>Follow-up</span>${esc(e.follow)}</div>` : ''}</div></li>`;
     if (e.kind === 'plant') return `<li class="marker"><div class="d">${date} · Planted${e.note ? ` as a ${esc(e.note)} seed` : ''}</div></li>`;
@@ -483,7 +508,7 @@ function plantView(p) {
           </div>
         </form>
         ${followupsHTML(p)}` : pl === 'shed' ? `<div class="card"><b>Dormant</b><p class="hint" style="margin:0">Parked in the shed. It doesn't wilt or take a bed. Revive it to start checking in again.</p></div>` : `<div class="card"><b>${esc(p.done.note)}</b><p class="hint" style="margin:0">Planted out in the garden on ${short(p.done.date)}. It stays as it is.</p></div>`}
-        ${isPerennial(p) ? workHTML(p) : ''}
+        ${isPerennial(p) ? workHTML(p) : peopleHTML(p)}
         <div class="card plan">
           ${isPerennial(p) ? '' : `<div><span class="label">Goal</span><p class="goal">${p.goal ? esc(p.goal) : '<span class="hint">No goal written yet</span>'}</p></div>`}
           ${isPerennial(p) ? seasonHTML(p) : `${p.intent ? `<div><span class="label">Why</span><p class="intent">${esc(p.intent)}</p></div>` : ''}${timelineHTML(p)}`}
@@ -624,6 +649,18 @@ $view.addEventListener('click', async e => {
   if (t.dataset.mfilter) { mfilter = t.dataset.mfilter; if (t.dataset.go) go({ name: 'manage' }); else render(); return; }
   if (t.dataset.unkeep) { if (await send('DELETE', `/api/guard/words/${t.dataset.unkeep}`)) { toast('Keep-out word removed'); render(); loadRewording(); } return; }
   if (t.dataset.bopen) { const id = t.dataset.bopen; openBranches.has(id) ? openBranches.delete(id) : openBranches.add(id); render(); return; }
+  if (t.dataset.linking) { linking = linking === t.dataset.linking ? null : t.dataset.linking; render(); return; }
+  if (t.dataset.linkto || t.dataset.unlink) {
+    const id = t.dataset.linkto ? linking : t.dataset.unlink, projectId = t.dataset.linkto || null;
+    const w = current.work.find(x => x.id === id);
+    if (await send('POST', `/api/branches/${encodeURIComponent(id)}/link`, { projectId })) { linking = null; toast(projectId ? `${w.title} now shows on ${byId(projectId).name}` : `${w.title} is a plain branch again`); render(); }
+    return;
+  }
+  if (t.dataset.newlink) {
+    const proj = byId(t.dataset.newlink), title = proj.name;
+    if (await send('POST', plantPath(current, 'branches'), { title, projectId: proj.id })) { adding = null; toast(`New branch linked to ${proj.name}`); render(); }
+    return;
+  }
   if (t.dataset.wrap) {
     const w = current.work.find(x => x.id === t.dataset.wrap);
     if (await send('POST', `/api/branches/${encodeURIComponent(w.id)}/done`)) { toast(`Branch done: ${w.title}`); render(); }
@@ -691,6 +728,8 @@ $view.addEventListener('change', async e => {
 $view.addEventListener('input', e => {
   const form = e.target.closest('form');
   if (form && guardFields(form).includes(e.target)) guardField(e.target);
+  if ('grow' in e.target.dataset) grow(e.target);
+  if (e.target.id === 'wk-title') document.getElementById('wk-suggest').innerHTML = wkSuggest(e.target.value);
   if (e.target.id === 'm-search') { msearch = e.target.value; const pos = e.target.selectionStart; render(); const el = document.getElementById('m-search'); el.focus(); el.setSelectionRange(pos, pos); return; }
   if (e.target.id === 'f-days') document.querySelectorAll('[data-cad]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.cad === +e.target.value));
 });
@@ -822,7 +861,7 @@ $view.addEventListener('keydown', e => {
   const gp = e.target.closest && e.target.closest('[data-gplant]');
   if (gp && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openPlant(gp.dataset.gplant); return; }
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-    const form = e.target.closest('#water-form');
+    const form = e.target.closest('#water-form, .b-form');
     if (form) { e.preventDefault(); form.requestSubmit(); }
   } else if (e.key === 'Enter' && e.target.closest('#water-form') && e.target.tagName === 'INPUT' && !['date', 'checkbox'].includes(e.target.type)) {
     e.preventDefault();

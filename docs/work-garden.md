@@ -53,6 +53,17 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   week" and `POST /api/plants/:id/need` are gone. The `need_*` columns and
   anything typed in them stay in D1 (nothing is deleted), are no longer
   shown or written, and stay under the guard's rewording check.
+- **Branches link people and projects** (Roy, 12 Oct 2026: "keep both, but
+  have some connection between both. but keep it simple"). A person's branch
+  can point to a project or initiative plant (growing or parked):
+  `branches.project_id` (migration 0002), set when adding a branch (the page
+  offers matching projects under the name box) or later with "Link to a
+  project", and undone with ×; `POST /api/branches/:id/link {projectId|null}`.
+  The project's page then shows "People on it": each person with a current
+  linked branch and that branch's latest update (`linkPeople` in
+  `src/store.js`). Updates are written on the branch only. No roles, due
+  dates or assigning. Branch update boxes grow as you type (up to 2000
+  characters, line breaks kept); Ctrl/⌘+Enter adds.
 - **The guard** (`public/shared/guard.js`): pattern rules for money, prices,
   contract terms, pay, health, HR and legal cases, secrets, and contact or
   bank details, plus Roy's keep-out words. Keep-out words are stored as
@@ -146,3 +157,8 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   the plant page and the API (Roy: "remove this special needs thing, does not
   make sense"). What was typed stays in D1, unshown. Step 3's growth score
   loses its "need met" point; to settle when step 3 is built.
+- **12 Oct 2026, branches link to projects.** A branch can point to a project
+  plant, which then shows the person under "People on it"; branch update
+  boxes grow with the text (up to 2000 characters). Mockup:
+  https://claude.ai/artifact/9RK89ZKLsMPi9xHgeNZoYS. Migration 0002 adds
+  `branches.project_id`.
