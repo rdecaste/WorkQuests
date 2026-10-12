@@ -93,3 +93,8 @@ test('Access tokens keep working next to the passes', async () => {
   const r = await call(makeEnv({ ROYOS_URL: ROYOS }), 'GET', '/api/garden');
   assert.equal(r.status, 200);
 });
+
+test('the page gets the link back to Roy OS, and none when ROYOS_URL is not set', async () => {
+  assert.equal((await call(makeEnv({ ROYOS_URL: ROYOS }), 'GET', '/api/garden')).body.royos, ROYOS);
+  assert.equal((await call(makeEnv(), 'GET', '/api/garden')).body.royos, null);
+});

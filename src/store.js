@@ -51,6 +51,7 @@ export async function buildState(env, { today = amsterdamDay() } = {}) {
     today, lastMonday: mondayOf(today), nextMonday: nextMonday(today),
     pictures: false, // OpenAI pictures of the plants arrive in build step 3
     landscape: await landscapeState(db), // the empty Velune landscape behind the Garden page
+    royos: env.ROYOS_URL || null, // the header's link back to Roy OS
     salt: ko.salt, keepOut: ko.words,
     plants: plants.map(row => shapePlant(row, by, today))
   };

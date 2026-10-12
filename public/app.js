@@ -11,6 +11,9 @@ let state = null, plants = [], TODAY = '', keepOutSet = {};
 function setState(s) {
   state = s; plants = s.plants; TODAY = s.today;
   keepOutSet = { salt: s.salt, hashes: new Set(s.keepOut.map(w => w.hash)) };
+  const os = document.getElementById('to-os'); // back to Roy OS (Roy, 12 Oct 2026)
+  if (s.royos) os.href = s.royos;
+  os.hidden = !s.royos;
 }
 const byId = id => plants.find(x => x.id === id);
 const health = p => healthOn(p, TODAY);

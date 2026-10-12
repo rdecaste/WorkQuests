@@ -35,7 +35,8 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   `settings`, never exported). Without a session the page sends the browser
   to Roy OS's `/go/garden`, which comes straight back with a pass or shows
   Roy OS's sign-in, so it stays one tap; the API answers 401. Code:
-  `src/pass.js`.
+  `src/pass.js`. The header has a "← Roy OS" link back to Roy OS's landing
+  page (the state's `royos`, from `ROYOS_URL`; hidden when that isn't set).
 - **Access** still works next to it: a `Cf-Access-Jwt-Assertion` token signed
   by the Access team `billowing-boat-2009`, with the app's audience tag
   (`ACCESS_AUD`) and an email in the `ALLOWED_EMAILS` secret (`src/access.js`).
@@ -133,3 +134,6 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
 - **11 Oct 2026, the landscape behind every page.** Greenhouse, Manage and the
   plant pages too, with see-through dark cards; the loop keeps playing when
   moving between pages.
+- **12 Oct 2026, back to Roy OS.** A "← Roy OS" link next to the Work Garden
+  name in the header (Roy: "add a link back to my roy os from my work garden
+  page").

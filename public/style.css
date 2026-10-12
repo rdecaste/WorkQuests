@@ -48,6 +48,9 @@ header.top { display: flex; align-items: center; gap: 12px 20px; padding-block: 
 .brand b { font-family: var(--font-display); font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
 .brand .logo { width: 26px; height: 30px; border-radius: 7px; overflow: hidden; background: var(--night); display: grid; place-items: end center; }
 .brand .logo svg { width: 26px; height: 30px; }
+.to-os { font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.to-os:hover, .to-os:focus-visible { background: rgb(0 0 0 / .05); }
+.to-os[hidden] { display: none; }
 nav.places { display: flex; gap: 4px; background: var(--surface-2); padding: 3px; border-radius: 999px; }
 nav.places button { border: 0; background: transparent; border-radius: 999px; padding: 5px 14px; font-size: 14px; font-weight: 600; color: var(--muted); }
 nav.places button[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
@@ -197,6 +200,8 @@ body.walled nav.places button[aria-current="page"] { background: rgb(255 255 255
 body.walled .find input { background: rgb(255 255 255 / .14); border-color: rgb(255 255 255 / .25); color: #fff; backdrop-filter: blur(10px); }
 body.walled .find input::placeholder, body.walled .find kbd, body.walled .today { color: rgb(255 255 255 / .72); }
 body.walled .find kbd { border-color: rgb(255 255 255 / .3); }
+body.walled .to-os { color: rgb(255 255 255 / .85); border-color: rgb(255 255 255 / .25); background: rgb(255 255 255 / .1); backdrop-filter: blur(10px); }
+body.walled .to-os:hover, body.walled .to-os:focus-visible { background: rgb(255 255 255 / .2); color: #fff; }
 body.walled .find-results { color: var(--ink); }
 .stage { min-height: calc(100vh - var(--head, 86px)); min-height: calc(100dvh - var(--head, 86px)); display: flex; flex-direction: column; padding-bottom: 14px; }
 .stage-head { max-width: 560px; }
