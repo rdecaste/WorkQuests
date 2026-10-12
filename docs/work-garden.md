@@ -9,14 +9,14 @@ changed.
 | Step | What | Status |
 |---|---|---|
 | 1 | Plants, ideas, check-ins, health, Greenhouse / Garden / Manage, guard, Access | Built 11 Oct 2026 |
-| 2 | AI planting: species, lore and special need drafted by OpenAI | Next |
+| 2 | AI planting: species and lore drafted by OpenAI | Next |
 | 3 | Monday scoring, OpenAI pictures, garden scene, Gemini clip | The empty landscape (still + loop) built 11 Oct 2026; the rest later |
 | 4 | Seasons: AI-drafted season reviews (seasons themselves work since step 1) | Later |
 | 5 | Backups (nightly to R2, like quest-engine) | Later |
 
 Until step 2 the planting form is filled in by hand: the species comes from
 the Velune catalogue (`public/shared/velune.js`, "Another plant" walks through
-it) and the special need is typed in. Until step 3 the pictures are the
+it). Until step 3 the pictures are the
 drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
 "next pictures" lines are hidden (`pictures: false` in the state).
 
@@ -46,8 +46,13 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   state. Health is computed from the log with the shared rules
   (`public/shared/rules.js`): thriving up to half the cadence, fine up to the
   cadence, thirsty up to one and a half, then wilting. Any attention counts:
-  a check-in, the special need, a ticked or added follow-up, a milestone, a
-  branch update, a revive.
+  a check-in, a ticked or added follow-up, a milestone, a branch update, a
+  revive.
+- **No special need** (taken out 12 Oct 2026, Roy: "remove this special needs
+  thing, does not make sense"). The form, the plant page box, "Met this
+  week" and `POST /api/plants/:id/need` are gone. The `need_*` columns and
+  anything typed in them stay in D1 (nothing is deleted), are no longer
+  shown or written, and stay under the guard's rewording check.
 - **The guard** (`public/shared/guard.js`): pattern rules for money, prices,
   contract terms, pay, health, HR and legal cases, secrets, and contact or
   bank details, plus Roy's keep-out words. Keep-out words are stored as
@@ -137,3 +142,7 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
 - **12 Oct 2026, back to Roy OS.** A "← Roy OS" link next to the Work Garden
   name in the header (Roy: "add a link back to my roy os from my work garden
   page").
+- **12 Oct 2026, no special need.** Taken out of the planting and edit form,
+  the plant page and the API (Roy: "remove this special needs thing, does not
+  make sense"). What was typed stays in D1, unshown. Step 3's growth score
+  loses its "need met" point; to settle when step 3 is built.

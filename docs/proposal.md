@@ -199,6 +199,11 @@ of work goes on its branch; "how are things going" is about the person.
 
 ## Species, lore and special needs
 
+> **12 Oct 2026: the special need is taken out** (Roy: "remove this special
+> needs thing, does not make sense"). Everything below about special needs,
+> including the growth point for a need met, no longer applies; see
+> `docs/work-garden.md`.
+
 **One world: Velune.** Every species comes from the same planet, so all
 plants look like they belong together and can stand in one garden. Velune is
 a night world under the ringed giant **Hesper** and the small pale moon

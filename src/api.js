@@ -11,7 +11,6 @@ export const ROUTES = [
   ['POST', '/api/plants', plantNew],
   ['PATCH', '/api/plants/:id', plantEdit],
   ['POST', '/api/plants/:id/checkin', checkin],
-  ['POST', '/api/plants/:id/need', needMet],
   ['POST', '/api/plants/:id/park', park],
   ['POST', '/api/plants/:id/revive', revive],
   ['POST', '/api/plants/:id/done', done],
@@ -131,13 +130,8 @@ function readMilestones(list, today) {
   if (!Array.isArray(list) || list.length > 30) bad('Milestones must be a short list');
   return list.map(m => ({ id: typeof m?.id === 'string' ? m.id : null, t: str(m?.t, 120, 'Milestone'), d: date(m?.d, 'Milestone date', today) })).filter(m => m.t);
 }
-function readNeed(n) {
-  n = n || {};
-  return { name: str(n.name, 80, 'Special need'), meaning: str(n.meaning, 200, 'What the need means'), check: str(n.check, 200, 'The need check') };
-}
 const guardPlant = (db, v, ms) => guard(db, {
   Name: v.name, 'Why it matters now': v.intent, Goal: v.goal, 'Season goal': v.seasonGoal, 'First next step': v.next,
-  'Special need': v.need.name, 'What the need means': v.need.meaning, 'The need check': v.need.check,
   ...Object.fromEntries(ms.map((m, i) => [`Milestone ${i + 1}`, m.t]))
 });
 
@@ -146,7 +140,7 @@ async function plantNew(ctx) {
   const v = {
     name: str(b.name, 80, 'Name', true), type: type(b.type), cadence: cadence(b.cadence ?? TYPES[b.type]?.cadence),
     intent: str(b.intent, 500, 'Why it matters now'), goal: str(b.goal, 300, 'Goal'), seasonGoal: str(b.seasonGoal, 300, 'Season goal'),
-    next: str(b.next, 300, 'First next step'), need: readNeed(b.need)
+    next: str(b.next, 300, 'First next step')
   };
   const species = cleanSpecies(b.species) || bad('Pick a species');
   const ms = v.type === 'person' ? [] : readMilestones(b.milestones, today);
@@ -159,11 +153,11 @@ async function plantNew(ctx) {
   }
   const perennial = v.type === 'person';
   const target = perennial ? null : date(b.target, 'Target date', addDays(today, 90));
-  const stmts = [db.prepare(`INSERT INTO plants (id, name, type, place, cadence_days, intent, goal, start_date, target_date, species, need_name, need_meaning, need_check, last_cared_at, created_at, planted_at, updated_at)
-      VALUES (?1, ?2, ?3, 'greenhouse', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?7, ?13, ?7, ?14)
+  const stmts = [db.prepare(`INSERT INTO plants (id, name, type, place, cadence_days, intent, goal, start_date, target_date, species, last_cared_at, created_at, planted_at, updated_at)
+      VALUES (?1, ?2, ?3, 'greenhouse', ?4, ?5, ?6, ?7, ?8, ?9, ?7, ?10, ?7, ?11)
       ON CONFLICT (id) DO UPDATE SET name = ?2, type = ?3, place = 'greenhouse', cadence_days = ?4, intent = ?5, goal = ?6, start_date = ?7, target_date = ?8,
-        species = ?9, need_name = ?10, need_meaning = ?11, need_check = ?12, last_cared_at = ?7, planted_at = ?7, updated_at = ?14`)
-    .bind(id, v.name, v.type, v.cadence, v.intent || null, perennial ? null : v.goal || null, today, target, JSON.stringify(species), v.need.name || null, v.need.meaning || null, v.need.check || null, created, ctx.at)];
+        species = ?9, last_cared_at = ?7, planted_at = ?7, updated_at = ?11`)
+    .bind(id, v.name, v.type, v.cadence, v.intent || null, perennial ? null : v.goal || null, today, target, JSON.stringify(species), created, ctx.at)];
   if (perennial) {
     const end = date(b.seasonEnd, 'Season end', addDays(today, 90));
     stmts.push(db.prepare('INSERT INTO seasons (id, plant_id, n, goal, start_date, end_date) VALUES (?, ?, 1, ?, ?, ?)').bind(newId(), id, v.seasonGoal || null, today, end > today ? end : addDays(today, 90)));
@@ -181,7 +175,7 @@ async function plantEdit(ctx) {
   const v = {
     name: str(b.name, 80, 'Name', true), type: type(b.type), cadence: cadence(b.cadence),
     intent: str(b.intent, 500, 'Why it matters now'), goal: str(b.goal, 300, 'Goal'), seasonGoal: str(b.seasonGoal, 300, 'Season goal'),
-    next: '', need: readNeed(b.need)
+    next: ''
   };
   const perennial = v.type === 'person';
   const ms = perennial ? [] : readMilestones(b.milestones, today);
@@ -190,10 +184,9 @@ async function plantEdit(ctx) {
   const species = b.species ? cleanSpecies(b.species) || bad('That species is not from Velune') : old;
   if (species !== old) await guard(db, { Species: [species.name, species.origin, species.lore, species.fits].join(' · ') });
   const stmts = [db.prepare(`UPDATE plants SET name = ?, type = ?, cadence_days = ?, intent = ?, goal = ?, start_date = ?, target_date = ?, species = ?,
-      need_name = ?, need_meaning = ?, need_check = ?, updated_at = ? WHERE id = ?`)
+      updated_at = ? WHERE id = ?`)
     .bind(v.name, v.type, v.cadence, v.intent || null, perennial ? p.goal : v.goal || null, p.start_date || p.planted_at || today,
-      perennial ? p.target_date : date(b.target, 'Target date', p.target_date || addDays(today, 90)), JSON.stringify(species),
-      v.need.name || p.need_name, v.need.name ? v.need.meaning || null : p.need_meaning, v.need.name ? v.need.check || null : p.need_check, ctx.at, p.id)];
+      perennial ? p.target_date : date(b.target, 'Target date', p.target_date || addDays(today, 90)), JSON.stringify(species), ctx.at, p.id)];
   if (p.cadence_days !== v.cadence) stmts.push(entry(ctx, p.id, 'cadence', { note: `${cadenceName(p.cadence_days)} → ${cadenceName(v.cadence).toLowerCase()}` }));
   if (old && species.name !== old.name) stmts.push(entry(ctx, p.id, 'species', { note: `${old.name} → ${species.name}` }));
   if (perennial) {
@@ -223,12 +216,6 @@ async function checkin(ctx) {
   const stmts = [entry(ctx, p.id, 'checkin', { id, going: going || null, note: follow }), cared(ctx, p.id)];
   if (follow) stmts.push(ctx.db.prepare('INSERT INTO follow_ups (id, plant_id, entry_id, text, added_on) VALUES (?, ?, ?, ?, ?)').bind(newId(), p.id, id, follow, ctx.today));
   await ctx.db.batch(stmts);
-  return fresh(ctx);
-}
-
-async function needMet(ctx) {
-  const p = await plantRow(ctx.db, ctx.params.id, ['greenhouse']);
-  await ctx.db.batch([entry(ctx, p.id, 'need', { note: p.need_check || p.need_name }), cared(ctx, p.id)]);
   return fresh(ctx);
 }
 

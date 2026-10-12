@@ -56,7 +56,6 @@ function ago(p) {
   const d = daysBetween(lw, TODAY);
   return d === 0 ? 'Checked in today' : d === 1 ? 'Checked in yesterday' : `Checked in ${d} days ago`;
 }
-const lastNeedMet = p => (p.log.find(e => e.kind === 'need') || {}).date;
 const stage = p => p.history.at(-1)[0]; // internal only: drives the picture, never shown
 const weeksGrowing = p => Math.max(1, Math.round(daysBetween(p.planted, placeOf(p) === 'garden' ? p.done.date : TODAY) / 7));
 // The picture is Monday's stage; between Mondays it takes on today's health.
@@ -89,7 +88,7 @@ let filter = 'all';
 let ghGroup = 'need';  // greenhouse grouping: 'need' | 'cadence'
 let route = { name: 'greenhouse' };
 let panel = null;      // plant page: 'park' | 'revive' | 'done' | 'season' | null
-let np = null;         // new plant: { ideaId, draft: { fields, need, speciesIndex } }
+let np = null;         // new plant: { ideaId, draft: { fields, speciesIndex } }
 let editDraft = null;  // edit page: typed values between re-renders
 const UI = {};         // per plant: lookBack, logOpen, loreOpen
 const ui = id => (UI[id] ||= {});
@@ -440,7 +439,6 @@ function plantView(p) {
     : panel === 'revive' ? box('Note (optional)', 'e.g. the go-ahead came', `<button class="btn primary small" type="submit">${activeCount >= LIMIT ? 'Revive anyway' : 'Revive'}</button>`, activeCount >= LIMIT ? `<div class="full">All ${LIMIT} beds are in use. Park a plant first, or revive anyway.</div>` : '')
     : panel === 'done' ? box(isPerennial(p) ? 'Where did they go?' : 'What came of it?', isPerennial(p) ? 'e.g. moved on to lead Payments' : 'e.g. old warehouse switched off', '<button class="btn primary small" type="submit">Plant out in the garden</button>', '<p class="hint" style="margin:0">It keeps its last picture and stays in the garden, unchanged.</p>')
     : '';
-  const met = lastNeedMet(p);
   const showStrip = state.pictures && p.history.length > 1;
   const picMeta = [
     state.pictures && (pl === 'garden' ? 'Stays as it was on its last day' : pl === 'shed' ? 'Pictures paused while dormant' : `Next picture ${fmt(state.nextMonday, { weekday: 'short', day: 'numeric', month: 'short' })}, a surprise`),
@@ -471,14 +469,6 @@ function plantView(p) {
           <h3>${esc(p.species.name)}</h3>
           <span class="origin">${esc(p.species.origin)}</span>
           ${u.loreOpen ? `<p>${esc(p.species.lore)}</p>${p.species.fits ? `<p class="fits">Fits: ${esc(lc(p.species.fits))}</p>` : ''}` : ''}
-          <div class="need-box">
-            <span class="label">Special need</span>
-            ${p.need.name ? `<span class="need-name">${esc(p.need.name)}</span>
-            ${p.need.meaning ? `<span class="meaning">${esc(p.need.meaning)}</span>` : ''}
-            <span class="met">${met ? `Last met ${short(met)}` : 'Not met yet'}</span>
-            ${pl === 'greenhouse' ? (met === TODAY ? '<span class="met-today">✓ Met today</span>' : `<button class="btn small" type="button" data-needmet="1" title="${esc(p.need.check)}">✓ Met this week</button>`) : ''}`
-            : `<span class="meaning">None yet${pl === 'garden' ? '' : '. Add one with Edit: what this plant needs to grow.'}</span>`}
-          </div>
         </div>
       </div>
       <div class="col">
@@ -488,7 +478,7 @@ function plantView(p) {
           <div class="field"><label for="w-going">How are things going?</label><input id="w-going" autocomplete="off" maxlength="500" placeholder="One line, or leave it empty and just check in"></div>
           <div class="field"><label for="w-follow">Next steps / follow-up</label><input id="w-follow" autocomplete="off" maxlength="300" placeholder="Optional; lands in the follow-up list"></div>
           <div class="water-foot">
-            <span class="hint">Any attention counts as a check-in: a line here, a branch update, a ticked follow-up, a milestone, the special need.</span>
+            <span class="hint">Any attention counts as a check-in: a line here, a branch update, a ticked follow-up, a milestone.</span>
             <button class="btn primary" type="submit">✓ Check in</button>
           </div>
         </form>
@@ -521,7 +511,7 @@ function speciesPick(sp, n, total) {
   </div>`;
 }
 
-function formFields(v, { editing = false, sp, need, n, total }) {
+function formFields(v, { editing = false, sp, n, total }) {
   const perennial = v.type === 'person';
   return `
     <div class="field"><label for="f-name">Name</label><input id="f-name" value="${esc(v.name)}" placeholder="A person, a project or an initiative" autocomplete="off" maxlength="80"></div>
@@ -529,11 +519,6 @@ function formFields(v, { editing = false, sp, need, n, total }) {
       <div class="types">${Object.entries(TYPES).map(([k, t]) => `<input type="radio" name="type" id="ty-${k}" value="${k}" ${k === v.type ? 'checked' : ''}><label for="ty-${k}"><b>${t.label}</b><small>${t.life}</small></label>`).join('')}</div>
     </div>
     <div class="field"><span class="label">Species</span>${speciesPick(sp, n, total)}</div>
-    <div class="field"><span class="label">Special need</span>
-      <div class="two"><div class="field"><label for="f-need" class="sub">Name</label><input id="f-need" value="${esc(need.name)}" placeholder="e.g. Open sky" maxlength="80" autocomplete="off"></div>
-      <div class="field"><label for="f-need-meaning" class="sub">What it means at work</label><input id="f-need-meaning" value="${esc(need.meaning)}" placeholder="e.g. room to decide without me" maxlength="200" autocomplete="off"></div></div>
-      <div class="field"><label for="f-need-check" class="sub">The check you tick when checking in</label><input id="f-need-check" value="${esc(need.check)}" placeholder="e.g. made a call without me" maxlength="200" autocomplete="off"></div>
-    </div>
     ${perennial ? `
     <div class="field"><label for="f-sgoal">This season's goal</label><textarea id="f-sgoal" placeholder="What should grow this season?" maxlength="300">${esc(v.seasonGoal)}</textarea></div>
     <div class="field"><label for="f-send">Season ends</label><input type="date" id="f-send" value="${v.seasonEnd || ''}"></div>` : `
@@ -560,7 +545,6 @@ function newPlant(idea) {
     ideaId: idea?.id || null,
     draft: {
       speciesIndex: Math.floor(Math.random() * CATALOGUE.length),
-      need: { name: '', meaning: '', check: '' },
       fields: { name: idea?.name || '', type, cadence: TYPES[type].cadence, goal: '', target: addDays(TODAY, 90), milestones: [], seasonGoal: '', seasonEnd: addDays(TODAY, 90), intent: idea?.note || '', next: '' }
     }
   };
@@ -572,10 +556,10 @@ function newView() {
   const d = np.draft;
   return `
     <button class="back" type="button" data-go="${np.ideaId ? 'manage' : 'greenhouse'}">← ${np.ideaId ? 'Manage' : 'Greenhouse'}</button>
-    <div class="np-head"><h1>${np.ideaId ? 'Plant an idea' : 'Plant something'}</h1><p>Only the name is required. Pick a species from Velune with Another plant, give it a special need, and say what you want to grow.</p></div>
+    <div class="np-head"><h1>${np.ideaId ? 'Plant an idea' : 'Plant something'}</h1><p>Only the name is required. Pick a species from Velune with Another plant and say what you want to grow.</p></div>
     <form class="form-card" id="plant-form" novalidate style="max-width:760px">
       ${full}
-      ${formFields(d.fields, { sp: CATALOGUE[d.speciesIndex], need: d.need, n: d.speciesIndex, total: CATALOGUE.length })}
+      ${formFields(d.fields, { sp: CATALOGUE[d.speciesIndex], n: d.speciesIndex, total: CATALOGUE.length })}
       <div class="actions"><button class="btn primary" type="submit">Plant</button><button class="btn ghost" type="button" data-go="${np.ideaId ? 'manage' : 'greenhouse'}">Cancel</button></div>
     </form>`;
 }
@@ -586,7 +570,7 @@ function editView(p) {
     <button class="back" type="button" data-go="plant">← ${esc(p.name)}</button>
     <form class="form-card" id="plant-form" novalidate style="max-width:760px">
       <h1>Edit plant</h1>
-      ${formFields(v, { editing: true, sp: v.speciesChoice || p.species, need: v.needDraft || p.need, n: 0, total: 0 })}
+      ${formFields(v, { editing: true, sp: v.speciesChoice || p.species, n: 0, total: 0 })}
       <div class="actions"><button class="btn primary" type="submit">Save</button><button class="btn ghost" type="button" data-go="plant">Cancel</button></div>
     </form>`;
 }
@@ -617,16 +601,14 @@ function readForm() {
   return {
     name: val('f-name'), type, goal: val('f-goal'), target: val('f-target'), seasonGoal: val('f-sgoal'), seasonEnd: val('f-send'),
     intent: val('f-intent'), next: val('f-next'), cadence: Math.max(1, Math.min(365, parseInt(val('f-days'), 10) || TYPES[type].cadence)),
-    milestones: [...document.querySelectorAll('[data-mst]')].map(el => ({ id: el.dataset.mid || undefined, t: el.value.trim(), d: document.querySelector(`[data-msd="${el.dataset.mst}"]`).value || TODAY })),
-    need: { name: val('f-need'), meaning: val('f-need-meaning'), check: val('f-need-check') }
+    milestones: [...document.querySelectorAll('[data-mst]')].map(el => ({ id: el.dataset.mid || undefined, t: el.value.trim(), d: document.querySelector(`[data-msd="${el.dataset.mst}"]`).value || TODAY }))
   };
 }
 function keep() { // keep typing across re-renders
   if (!document.getElementById('plant-form')) return;
   const v = readForm();
-  const need = v.need; delete v.need;
-  if (route.name === 'new') { np.draft.need = need; Object.assign(np.draft.fields, v); }
-  else editDraft = { ...(editDraft || {}), ...v, needDraft: need };
+  if (route.name === 'new') Object.assign(np.draft.fields, v);
+  else editDraft = { ...(editDraft || {}), ...v };
 }
 
 // ---------- interactions ----------
@@ -642,7 +624,6 @@ $view.addEventListener('click', async e => {
   if (t.dataset.mfilter) { mfilter = t.dataset.mfilter; if (t.dataset.go) go({ name: 'manage' }); else render(); return; }
   if (t.dataset.unkeep) { if (await send('DELETE', `/api/guard/words/${t.dataset.unkeep}`)) { toast('Keep-out word removed'); render(); loadRewording(); } return; }
   if (t.dataset.bopen) { const id = t.dataset.bopen; openBranches.has(id) ? openBranches.delete(id) : openBranches.add(id); render(); return; }
-  if (t.dataset.needmet) { if (await send('POST', plantPath(current, 'need'))) { toast(`${current.need.name}: met`); render(); } return; }
   if (t.dataset.wrap) {
     const w = current.work.find(x => x.id === t.dataset.wrap);
     if (await send('POST', `/api/branches/${encodeURIComponent(w.id)}/done`)) { toast(`Branch done: ${w.title}`); render(); }
@@ -826,7 +807,7 @@ $view.addEventListener('submit', async e => {
   if (form.id === 'plant-form') {
     const v = readForm();
     if (!v.name) { document.getElementById('f-err').hidden = false; document.getElementById('f-name').focus(); return; }
-    const body = { name: v.name, type: v.type, cadence: v.cadence, intent: v.intent, goal: v.goal, target: v.target, seasonGoal: v.seasonGoal, seasonEnd: v.seasonEnd, need: v.need, milestones: v.milestones.filter(m => m.t) };
+    const body = { name: v.name, type: v.type, cadence: v.cadence, intent: v.intent, goal: v.goal, target: v.target, seasonGoal: v.seasonGoal, seasonEnd: v.seasonEnd, milestones: v.milestones.filter(m => m.t) };
     if (route.name === 'edit') {
       if (editDraft?.speciesChoice) body.species = editDraft.speciesChoice;
       if (await send('PATCH', plantPath(p), body)) { editDraft = null; toast('Saved'); go({ name: 'plant', id: p.id }); }

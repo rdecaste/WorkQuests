@@ -63,8 +63,7 @@ function shapePlant(row, by, today) {
   Object.assign(p, {
     cadence: row.cadence_days, planted: row.planted_at, start: row.start_date, target: row.target_date,
     goal: row.goal || '', intent: row.intent || '',
-    species: JSON.parse(row.species || 'null') || { name: 'Unnamed seedling', origin: 'Somewhere on Velune', form: 'tendril', hue: 150, lore: '', fits: '' },
-    need: { name: row.need_name || '', meaning: row.need_meaning || '', check: row.need_check || '' }
+    species: JSON.parse(row.species || 'null') || { name: 'Unnamed seedling', origin: 'Somewhere on Velune', form: 'tendril', hue: 150, lore: '', fits: '' }
   });
   const mss = by.milestones(row.id);
   if (row.type === 'person') {
@@ -95,6 +94,8 @@ export const TEXT_FIELDS = {
   'plants.idea_note': { label: 'Idea note', max: 300 },
   'plants.intent': { label: 'Why it matters now', max: 500 },
   'plants.goal': { label: 'Goal', max: 300 },
+  // The special need was taken out on 12 Oct 2026 (Roy: "does not make sense");
+  // what was typed stays in D1 and under the guard, but is no longer shown.
   'plants.need_name': { label: 'Special need', max: 80 },
   'plants.need_meaning': { label: 'What the need means at work', max: 200 },
   'plants.need_check': { label: 'The need check', max: 200 },

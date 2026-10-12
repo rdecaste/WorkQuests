@@ -7,7 +7,7 @@ import { amsterdamDay } from '../public/shared/rules.js';
 const today = amsterdamDay();
 const find = (state, id) => state.plants.find(p => p.id === id);
 async function plantPerson(env, extra = {}) {
-  const r = await call(env, 'POST', '/api/plants', { name: 'Lars Meijer', type: 'person', cadence: 7, species: SPECIES, need: { name: 'A binding', meaning: 'A buddy who answers fast', check: 'Lars got unblocked quickly' }, seasonGoal: 'Settled in and shipping on his own', intent: 'New to the team', next: 'Pick a starter ticket', ...extra });
+  const r = await call(env, 'POST', '/api/plants', { name: 'Lars Meijer', type: 'person', cadence: 7, species: SPECIES, seasonGoal: 'Settled in and shipping on his own', intent: 'New to the team', next: 'Pick a starter ticket', ...extra });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   return r.body;
 }
@@ -107,8 +107,17 @@ test('check in: with lines, without, and follow-ups ticked off', async () => {
   assert.ok(p.log.some(e => e.kind === 'todo' && e.todo === todo.id));
   g = (await call(env, 'POST', `/api/follow-ups/${todo.id}/unclear`, {})).body;
   assert.equal(find(g, s.id).todos.find(t => t.id === todo.id).closed, null);
-  g = (await call(env, 'POST', `/api/plants/${s.id}/need`, {})).body;
-  assert.equal(find(g, s.id).log[0].kind, 'need');
+});
+
+test('the special need is gone from the page and the API, and what was typed stays in D1', async () => {
+  const env = makeEnv();
+  const s = await plantPerson(env);
+  await env.DB.prepare("UPDATE plants SET need_name = 'A binding', need_check = 'Got unblocked quickly' WHERE id = ?").bind(s.id).run();
+  assert.equal((await call(env, 'POST', `/api/plants/${s.id}/need`, {})).status, 404);
+  const g = (await call(env, 'PATCH', `/api/plants/${s.id}`, { name: 'Lars Meijer', type: 'person', cadence: 14, need: { name: 'Something else' } })).body;
+  assert.equal(find(g, s.id).need, undefined);
+  const row = await env.DB.prepare('SELECT need_name, need_check FROM plants WHERE id = ?').bind(s.id).first();
+  assert.deepEqual({ ...row }, { need_name: 'A binding', need_check: 'Got unblocked quickly' });
 });
 
 test('branches and updates', async () => {

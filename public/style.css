@@ -340,10 +340,6 @@ body.walled .land-foot .linkish { color: rgb(255 255 255 / .7); }
 .species-card .origin { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
 .species-card p { margin: 0; font-size: 14px; }
 .species-card .fits { font-size: 13.5px; color: var(--muted); }
-.need-box { border-top: 1px dashed var(--line); padding-top: 10px; display: grid; gap: 4px; }
-.need-box .need-name { font-weight: 700; }
-.need-box .meaning { font-size: 14px; }
-.need-box .met { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
 
 .growth .strip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
 .growth .wk { display: grid; gap: 3px; justify-items: center; min-width: 0; }
@@ -393,7 +389,6 @@ body.walled .land-foot .linkish { color: rgb(255 255 255 / .7); }
 .todos label { font-size: 14.5px; overflow-wrap: anywhere; }
 .todos .d { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
 .todos li.done label { text-decoration: line-through; color: var(--muted); }
-.need-box .btn { justify-self: start; margin-top: 4px; }
 .met-today { font-size: 13px; color: var(--accent); font-weight: 600; }
 .field { display: grid; gap: 4px; min-width: 0; }
 .field > label, .field-head > label, .field > .label { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
@@ -424,11 +419,6 @@ body.walled .land-foot .linkish { color: rgb(255 255 255 / .7); }
 .work-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
 .work-add input { padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); min-width: 0; font-size: 13.5px; }
 .plot .on { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.needcheck { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: start; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--magic) 9%, var(--surface)); border: 1px solid color-mix(in srgb, var(--magic) 28%, var(--line)); }
-.needcheck input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--magic); }
-.needcheck label { font-size: 14px; }
-.needcheck label b { color: var(--magic); }
-.needcheck input[type="text"] { grid-column: 2; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); min-width: 0; }
 .water-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .water-foot .date { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
 .water-foot input[type="date"] { padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-family: var(--font-mono); font-size: 13px; }
@@ -485,7 +475,6 @@ ul.todos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .log .d { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); }
 .log .lines { display: grid; gap: 2px; margin-top: 3px; font-size: 14.5px; }
 .log .lines span { color: var(--muted); display: inline-block; min-width: 108px; margin-right: 8px; font-size: 13px; }
-.log .lines .needmet { color: var(--magic); }
 .log .note { font-size: 14px; color: var(--muted); font-style: italic; margin-top: 2px; }
 
 /* New plant and edit */

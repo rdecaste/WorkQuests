@@ -7,7 +7,7 @@
 // Everything else needs the cookie or an Access token:
 //   /                      the page (public/: index.html, app.js, draw.js, style.css, shared/)
 //   GET  /api/garden       everything the page shows
-//   POST /api/plants, PATCH /api/plants/:id, POST /api/plants/:id/{checkin,need,park,revive,done,season,branches}
+//   POST /api/plants, PATCH /api/plants/:id, POST /api/plants/:id/{checkin,park,revive,done,season,branches}
 //   POST /api/branches/:id/{updates,done}, POST /api/follow-ups/:id/{clear,unclear}
 //   POST /api/ideas, DELETE /api/ideas/:id (hides it; nothing is deleted)
 //   POST /api/landscape     paint (or repaint) the garden's landscape (src/landscape.js)

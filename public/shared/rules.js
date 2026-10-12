@@ -26,8 +26,9 @@ export const nextMonday = s => addDays(mondayOf(s), 7);
 // ---- health ----
 export const placeOf = p => p.place || 'greenhouse';
 // Any attention counts as a check-in: a check-in (with or without a note), a
-// branch update, a follow-up added or ticked off, a milestone ticked, or the
-// special need marked met. Looking at the page alone does not.
+// branch update, a follow-up added or ticked off, or a milestone ticked ('need'
+// is the special need, marked met before it was taken out on 12 Oct 2026).
+// Looking at the page alone does not.
 export const CARE = new Set(['checkin', 'need', 'todo', 'milestone']);
 export function lastCare(p) {
   return [
