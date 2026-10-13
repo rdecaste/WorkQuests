@@ -10,7 +10,7 @@ changed.
 |---|---|---|
 | 1 | Plants, ideas, check-ins, health, Greenhouse / Garden / Manage, guard, Access | Built 11 Oct 2026 |
 | 2 | AI planting: species and lore drafted by OpenAI | Next |
-| 3 | Monday scoring, OpenAI pictures, garden scene, Gemini clip | The empty landscape (still + loop) built 11 Oct 2026; the rest later |
+| 3 | Monday scoring, OpenAI pictures, garden scene, Gemini clip | The empty landscape (still + loop) built 11 Oct 2026; branch limbs and the plant style decided 13 Oct (`src/pictures.js`); the rest later |
 | 4 | Seasons: AI-drafted season reviews (seasons themselves work since step 1) | Later |
 | 5 | Backups (nightly to R2, like quest-engine) | Later |
 
@@ -162,3 +162,10 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   boxes grow with the text (up to 2000 characters). Mockup:
   https://claude.ai/artifact/9RK89ZKLsMPi9xHgeNZoYS. Migration 0002 adds
   `branches.project_id`.
+- **13 Oct 2026, step 3 plan: branches and style.** Each branch becomes a
+  limb in the Monday picture, sized by the weeks it had an update (bud,
+  sprig, branch, leafy branch, bough), pale when quiet three weeks, a bloom
+  when done. Plant pictures are halfway between hyper-realistic and anime.
+  Rules and fixed prompt words in `src/pictures.js` (tested), used once the
+  Monday pictures are built. Proposal:
+  https://claude.ai/artifact/9ztkzXdkPBaenXHnBbGE8J.

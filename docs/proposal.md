@@ -164,8 +164,8 @@ a "Done" line. Branch updates also appear in the plant's log, marked with the
 branch name. It is a note, not an assignment (since 12 Oct 2026 it may point to a project
 plant, see `docs/work-garden.md`): no
 roles, no due dates. Their Greenhouse tile shows the current branches. In the
-Monday picture each current branch is a branch of the plant (named nowhere),
-so adding one shows up the next Monday. When planting a person, the AI may
+Monday picture each branch is a limb of the plant (named nowhere), so adding
+one shows up the next Monday; see **Branches grow in the picture** below. When planting a person, the AI may
 suggest a first few branches from the description.
 
 **Rare edits sit behind a button.** Adding a branch (**+ Branch**), a
@@ -219,7 +219,9 @@ a night world under the ringed giant **Hesper** and the small pale moon
 | Ember Hollows | orbs, lanterns | near-black cave mouths, warm glow |
 
 A fixed **style guide** goes into every image prompt, so OpenAI paints all
-plants the same way: the same painterly, softly glowing night style, the
+plants the same way: halfway between hyper-realistic and anime (Roy, 13 Oct
+2026: realistic textures, light and detail with the clean shapes and rich
+colour of a high-end anime film; `STYLE` in `src/pictures.js`), the
 same light (Hesper and Pell plus the plant's own glow), the same camera
 height and three-quarter angle, the plant standing on the ground line, and a
 size class (small, medium, tall) so they keep their scale next to each
@@ -270,6 +272,21 @@ fuller bloom, seeds, small companions), so there is always a next surprise.
    week's picture is the reference image, so it is visibly the same plant
    growing, or withering. The plant is painted on a transparent background
    and saved to R2 as `plants/<id>/<week>.png`.
+
+**Branches grow in the picture** (Roy, 13 Oct 2026: "every branch should be
+a visual branch the week after ... the bigger the branch the bigger the
+leaf/branch"; proposal https://claude.ai/artifact/9ztkzXdkPBaenXHnBbGE8J).
+Each of a person's branches is a limb on their plant, oldest lowest on the
+stem so each keeps its place. Its size comes from the weeks with at least
+one update before that Monday: none a bud, 1 a sprig, 2–3 a branch, 4–7 a
+leafy branch, 8+ a bough. It never shrinks. Untouched for three weeks its
+leaves curl and pale; one update freshens it the next Monday. **Done** puts a
+bloom on its tip and it stays at the size it reached. More than eight limbs:
+the branches finished longest ago drop out of the picture (not the data).
+The prompt carries only sizes and states, never names or updates
+(`branchLimbs` and `limbPrompt` in `src/pictures.js`). The plant's own stage
+still comes from check-ins; limbs are extra, not a second score. If the
+painter keeps moving limbs between weeks, fall back to drawing them on top.
 
 **Every plant stands on its own patch of Velune.** At planting, OpenAI
 paints the plant's backdrop once: its biome under the shared sky (Hesper and
