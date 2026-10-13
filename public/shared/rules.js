@@ -4,7 +4,7 @@
 
 export const LIMIT = 12; // soft limit on beds in the greenhouse
 export const TYPES = {
-  person: { label: 'Person', plural: 'People', cadence: 7, life: 'Perennial: grows in seasons, no end date' },
+  person: { label: 'Person', plural: 'People', cadence: 7, life: 'Perennial: no end date, planted out when they move on' },
   project: { label: 'Project', plural: 'Projects', cadence: 14, life: 'Annual: has a target, ends in the garden' },
   initiative: { label: 'Initiative', plural: 'Initiatives', cadence: 14, life: 'Annual: has a target, ends in the garden' }
 };

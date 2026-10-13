@@ -9,15 +9,15 @@ changed.
 | Step | What | Status |
 |---|---|---|
 | 1 | Plants, ideas, check-ins, health, Greenhouse / Garden / Manage, guard, Access | Built 11 Oct 2026 |
-| 2 | AI planting: species and lore drafted by OpenAI | Next |
+| 2 | AI planting: ✦ Frame it with AI, species from the catalogue, ✦ Paint its picture (the seed) | Built 13 Oct 2026 |
 | 3 | Monday scoring, OpenAI pictures, garden scene, Gemini clip | The empty landscape (still + loop) built 11 Oct 2026; branch limbs and the plant style decided 13 Oct (`src/pictures.js`); the rest later |
-| 4 | Seasons: AI-drafted season reviews (seasons themselves work since step 1) | Later |
+| 4 | Seasons | Dropped 13 Oct 2026 (Roy: "drop the season thing"): everyone has purpose, timing and milestones |
 | 5 | Backups (nightly to R2, like quest-engine) | Later |
 
-Until step 2 the planting form is filled in by hand: the species comes from
-the Velune catalogue (`public/shared/velune.js`, "Another plant" walks through
-it). Until step 3 the pictures are the
-drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
+Species come from the Velune catalogue (`public/shared/velune.js`): the AI
+picks three, or "Another plant" walks through it when filling in by hand.
+Until step 3 a plant shows its painted seed if Roy painted it, otherwise the
+drawings in `public/draw.js`; every plant stays a seed (stage 0), and the
 "next pictures" lines are hidden (`pictures: false` in the state).
 
 ## How it works
@@ -64,6 +64,55 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   `src/store.js`). Updates are written on the branch only. No roles, due
   dates or assigning. Branch update boxes grow as you type (up to 2000
   characters, line breaks kept); Ctrl/⌘+Enter adds.
+- **No seasons** (taken out 13 Oct 2026, Roy: "drop the season thing. yes
+  milestones. yes timing, yes, intent/purpose no to 'why it matters now'").
+  Every plant has a **purpose** (`plants.goal`), a **timing** (`target_date`)
+  and **milestones**, people included; Edit changes them for every type. The
+  season card, Close season and `POST /api/plants/:id/season`,
+  `PATCH /api/seasons/:id`, `POST /api/seasons/:id/milestones` are gone. New
+  people get no season; seasons already made (and their goals and reviews)
+  stay in D1 and the export, unshown, and stay under the guard. "Why it
+  matters now" (`plants.intent`) is no longer asked or shown; old text stays.
+- **✦ Frame it with AI** (Roy, 13 Oct 2026: "have AI help/guide me to start a
+  plant, similar like how a quest is build - to frame it"). + Plant opens a
+  describe step: a few lines, what it's about (a person, a project, an
+  initiative, or let the AI tell), then **✦ Frame it with AI** or **Fill in
+  myself**. `POST /api/frame {description, type?, answers?, draft?}`
+  (`src/frame.js`) guards the description, answers and any draft lines (422
+  as any write), counts the call (at most 40 a day, `settings`
+  `frame_calls`), and asks the chat model through Roy OS (`STUDIO.draft`,
+  Roy OS's OpenAI key and `CHAT_MODEL`; without the binding this Worker's
+  `OPENAI_API_KEY`). The model gets fixed instructions (`SYSTEM`), today, the
+  beds in use, Roy's live project and people plants by name with short refs
+  (`p1`, `h1`; ids never leave), the catalogue, and question angles for the
+  kind of plant (`ANGLES`: a person: what they do on their own by the date,
+  which work becomes branches, how involved Roy stays; a project: what done
+  looks like, the milestones, who's on it; an initiative: what has changed,
+  the first steps, who's involved). The answer is cleaned (`cleanDraft`:
+  lengths, dates between today and two years out, refs mapped back to real
+  plants, three catalogue species) and every line goes through the guard
+  again (`guardDraft`): a caught line is left out and the page says how many.
+  Nothing is saved. The draft fills the form with a ✦ reason under each field,
+  a recommendation (plant now, or **Save as an idea**), the three species and
+  up to three questions; **✦ Update draft with answers** sends the answers and
+  the edited draft back. Planting (`POST /api/plants`) takes `branches`
+  (`[{title, projectId?}]`, a person's own) or `people` (`[{plantId, title}]`,
+  a project or initiative: each person gets a branch pointing to it), all
+  guarded.
+- **✦ Paint its picture** (Roy, 13 Oct 2026: "I also want the plant image to
+  be generated once I start a plant - there should be a button"). Once
+  planted, the plant page offers it (or Later; then a small link stays).
+  `POST /api/plants/:id/picture` starts the `PlantPicture` Workflow
+  (`src/entry.js`, `src/plantpicture.js`): one paid still from Roy OS's Studio,
+  saved to R2 `plants/<id>/<stamp>.jpg`, shown from `plants.picture_key`
+  (migration 0003) on the tile, the plant page and in lists; `settings`
+  `picture:<id>` holds painting / ready / failed, and the page looks again
+  every 15 seconds while it paints. Once per plant: a plant with its picture
+  keeps it (409 after). The prompt (`seedPrompt` in `src/pictures.js`) is
+  the plant style (halfway between hyper-realistic and anime) plus only the
+  seed: the catalogue species' name, its biome and colour, a sprout no
+  taller than a thumb, nothing about what it grows into. A species not in the
+  catalogue is painted from its shape and colour only; nothing typed goes in.
 - **The guard** (`public/shared/guard.js`): pattern rules for money, prices,
   contract terms, pay, health, HR and legal cases, secrets, and contact or
   bank details, plus Roy's keep-out words. Keep-out words are stored as
@@ -109,17 +158,20 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
 ## Cloudflare
 
 - Worker `work-garden`; D1 `work-garden` (id `5d19a52b-ebc2-43a5-8320-f370d6c52dc1`,
-  Western Europe), schema `migrations/0001_garden.sql` applied 11 Oct 2026.
+  Western Europe), schema `migrations/0001_garden.sql` applied 11 Oct 2026, `0002_branch_project.sql`
+  12 Oct, `0003_plant_picture.sql` 13 Oct.
 - Address: `work-garden.quest-engine.workers.dev`. Access on the Worker's Access tab: all traffic,
   policy "Cloudflare account", 7-day sessions (Roy, 11 Oct 2026).
 - Roy OS (Worker `royos`, repo rdecaste/RoyOS) has a service binding `WORK_GARDEN` to this
   Worker's `GardenPass` entrypoint. Deploy this Worker first when the entrypoint changes.
 - R2 bucket `work-garden-media` (made 11 Oct 2026, location ENAM, default jurisdiction: it only
-  holds pictures of Velune, no work text), binding `MEDIA`. Workflow `work-garden-scene`, binding `GARDEN_SCENE`.
-- Service binding `STUDIO` → Worker `royos`, entrypoint `Studio` (Roy OS's keys paint the landscape).
+  holds pictures of Velune, no work text), binding `MEDIA`. Workflows `work-garden-scene` (binding `GARDEN_SCENE`,
+  the landscape) and `work-garden-plant` (binding `PLANT_PICTURE`, a plant's seed).
+- Service binding `STUDIO` → Worker `royos`, entrypoint `Studio` (Roy OS's keys paint the landscape and the seeds,
+  and its `draft` answers ✦ Frame it with AI).
   Deploy Roy OS first when `Studio` changes.
 - Vars: `ACCESS_TEAM`, `ACCESS_AUD` (the Access app's audience tag), `ROYOS_URL`, `PUBLIC_URL`; optional `IMAGE_MODEL`,
-  `VIDEO_MODEL`. Secrets: `ALLOWED_EMAILS`; `OPENAI_API_KEY` and `GEMINI_API_KEY` only if `STUDIO` is removed.
+  `VIDEO_MODEL`, `CHAT_MODEL`. Secrets: `ALLOWED_EMAILS`; `OPENAI_API_KEY` and `GEMINI_API_KEY` only if `STUDIO` is removed.
 
 ## Change log
 
@@ -169,3 +221,12 @@ drawings in `public/draw.js`, every plant stays a seed (stage 0), and the
   Rules and fixed prompt words in `src/pictures.js` (tested), used once the
   Monday pictures are built. Proposal:
   https://claude.ai/artifact/9ztkzXdkPBaenXHnBbGE8J.
+- **13 Oct 2026, guided planting, step 2.** + Plant starts with a few lines
+  and **✦ Frame it with AI** (every field drafted with a reason, a
+  recommendation, up to three questions by kind of plant, three species),
+  or Fill in myself. Planting can add a person's branches or a project's
+  people. After planting, **✦ Paint its picture** paints the seed. Seasons
+  are gone: everyone has purpose, timing and milestones (the season on Roy's
+  one person plant stays in D1, unshown). Roy OS got `Studio.draft`.
+  Mockup: https://claude.ai/artifact/3js2FZ4p7gNd65wiMRsSmn. Migration 0003
+  adds `plants.picture_key`.

@@ -578,3 +578,46 @@ ul.todos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .reword .rw-row { display: flex; gap: 8px; }
 .reword .rw-row input { flex: 1; min-width: 0; }
 .reword input { padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+
+/* ---- A plant's own painted picture (✦ Paint its picture) ---- */
+.terra.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+.terra.photo[data-hp="thirsty"] img { filter: saturate(.75) brightness(.85); }
+.terra.photo[data-hp="wilting"] img, .terra.photo[data-hp="dormant"] img { filter: saturate(.35) brightness(.72); }
+.terra.photo.revealed img { animation: reveal 1.4s cubic-bezier(.2,.8,.2,1) both; }
+.painting { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: 4px; text-align: center; color: #fff; padding: 12px;
+  background: linear-gradient(110deg, rgb(11 9 22 / .55) 30%, color-mix(in srgb, var(--magic) 40%, rgb(11 9 22 / .4)) 50%, rgb(11 9 22 / .55) 70%); background-size: 250% 100%; animation: shimmer 2.2s linear infinite; }
+.painting b { font-family: var(--font-display); font-size: 17px; }
+.painting small { font-size: 12px; color: #ffffffc0; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+@media (prefers-reduced-motion: reduce) { .painting { animation: none; } }
+.paint-callout { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border-radius: 10px; font-size: 14px;
+  background: color-mix(in srgb, var(--magic) 8%, var(--surface)); border: 1px solid color-mix(in srgb, var(--magic) 30%, var(--line)); }
+.paint-callout p { margin: 0; }
+.paint-note { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); }
+
+/* ---- Guided planting: describe, ✦ Frame it with AI, plant ---- */
+.np-steps { list-style: none; display: flex; gap: 6px; margin: 0 0 12px; padding: 0; flex-wrap: wrap; }
+.np-steps li { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); }
+.np-steps li.on { color: var(--magic); border-color: color-mix(in srgb, var(--magic) 50%, var(--line)); background: color-mix(in srgb, var(--magic) 10%, transparent); }
+.np-steps li.done { color: var(--ink); }
+.why { font-size: 12.5px; color: var(--magic); opacity: .9; }
+.why::before { content: '✦ '; }
+.rec { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; font-size: 14px;
+  background: color-mix(in srgb, var(--thriving) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--thriving) 35%, var(--line)); }
+.rec.wait { background: color-mix(in srgb, var(--thirsty) 10%, var(--surface)); border-color: color-mix(in srgb, var(--thirsty) 35%, var(--line)); }
+.sp-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sp { display: grid; gap: 3px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); align-content: start; }
+.sp b { font-family: var(--font-display); font-style: italic; font-size: 16px; color: var(--magic); }
+.sp .origin { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+.sp .fits { font-size: 13px; color: var(--muted); }
+.sp[aria-pressed="true"] { border-color: var(--magic); box-shadow: 0 0 0 2px color-mix(in srgb, var(--magic) 60%, transparent) inset; background: color-mix(in srgb, hsl(var(--h) 60% 50%) 8%, var(--bg)); }
+.br-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.br { display: inline-flex; align-items: center; gap: 4px; font-size: 13.5px; padding: 3px 4px 3px 10px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--fine) 45%, var(--line)); background: color-mix(in srgb, var(--fine) 10%, transparent); }
+.br.link { border-color: color-mix(in srgb, var(--magic) 45%, var(--line)); background: color-mix(in srgb, var(--magic) 10%, transparent); }
+.br small { color: var(--muted); }
+.br-add { display: inline-flex; gap: 6px; align-items: center; }
+.field .br-add input { width: 200px; padding: 6px 10px; }
+.qs { display: grid; gap: 10px; }
+.q { display: grid; gap: 4px; }
+.field .q label { font-size: 14px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--ink); }
+@media (max-width: 640px) { .sp-choices { grid-template-columns: minmax(0, 1fr); } .field .br-add input { width: 150px; } }

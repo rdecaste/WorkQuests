@@ -4,6 +4,8 @@ import { TYPES, amsterdamDay, addDays, isDate, cadenceName } from '../public/sha
 import { check, say } from '../public/shared/guard.js';
 import { cleanSpecies } from '../public/shared/velune.js';
 import { startLandscape } from './landscape.js';
+import { startPicture } from './plantpicture.js';
+import { frameDraft } from './frame.js';
 import { buildState, keepOut, allText, TEXT_FIELDS, now, newId } from './store.js';
 
 export const ROUTES = [
@@ -14,7 +16,8 @@ export const ROUTES = [
   ['POST', '/api/plants/:id/park', park],
   ['POST', '/api/plants/:id/revive', revive],
   ['POST', '/api/plants/:id/done', done],
-  ['POST', '/api/plants/:id/season', seasonNext],
+  ['POST', '/api/plants/:id/picture', pictureStart],
+  ['POST', '/api/frame', frame],
   ['POST', '/api/plants/:id/branches', branchNew],
   ['POST', '/api/branches/:id/updates', branchUpdate],
   ['POST', '/api/branches/:id/done', branchDone],
@@ -23,8 +26,6 @@ export const ROUTES = [
   ['POST', '/api/follow-ups/:id/unclear', followUnclear],
   ['POST', '/api/ideas', ideaNew],
   ['DELETE', '/api/ideas/:id', ideaDiscard],
-  ['PATCH', '/api/seasons/:id', seasonEdit],
-  ['POST', '/api/seasons/:id/milestones', seasonMilestone],
   ['POST', '/api/milestones/:id/toggle', milestoneToggle],
   ['GET', '/api/guard', guardList],
   ['POST', '/api/guard/words', guardWordAdd],
@@ -126,46 +127,77 @@ async function landscapeStart(ctx) {
   return fresh(ctx);
 }
 
+// ✦ Paint its picture: the seed, once (src/plantpicture.js).
+async function pictureStart(ctx) {
+  const p = await plantRow(ctx.db, ctx.params.id, ['greenhouse', 'shed', 'garden']);
+  const refused = await startPicture(ctx.env, p);
+  if (refused) throw new HttpError(refused.status, refused.body);
+  return fresh(ctx);
+}
+
+// ✦ Frame it with AI (src/frame.js): a draft for the planting form, nothing saved.
+function frame(ctx) { return frameDraft(ctx, { guard, bad, HttpError, str }); }
+
 function readMilestones(list, today) {
   if (list == null) return [];
   if (!Array.isArray(list) || list.length > 30) bad('Milestones must be a short list');
   return list.map(m => ({ id: typeof m?.id === 'string' ? m.id : null, t: str(m?.t, 120, 'Milestone'), d: date(m?.d, 'Milestone date', today) })).filter(m => m.t);
 }
 const guardPlant = (db, v, ms) => guard(db, {
-  Name: v.name, 'Why it matters now': v.intent, Goal: v.goal, 'Season goal': v.seasonGoal, 'First next step': v.next,
+  Name: v.name, Purpose: v.goal, 'First next step': v.next,
   ...Object.fromEntries(ms.map((m, i) => [`Milestone ${i + 1}`, m.t]))
 });
 
+// Branches drafted at planting. A person's own: [{title, projectId?}]. For a
+// project or initiative, the people on it: [{plantId, title}], each a new
+// branch on that person's plant pointing to the new one.
+function readBranches(list, field) {
+  if (list == null) return [];
+  if (!Array.isArray(list) || list.length > 8) bad('Branches must be a short list');
+  return list.map(b => ({ title: str(b?.title, 120, 'Branch'), projectId: typeof b?.projectId === 'string' ? b.projectId : null, plantId: typeof b?.plantId === 'string' ? b.plantId : null }))
+    .filter(b => b.title && (field !== 'people' || b.plantId));
+}
+async function personRow(db, id) {
+  const p = await db.prepare("SELECT id, type, place FROM plants WHERE id = ? AND place IN ('greenhouse', 'shed')").bind(id).first();
+  if (!p || p.type !== 'person') bad('People on it must be people in the greenhouse or the shed');
+  return p;
+}
+
+// Seasons left the app on 13 Oct 2026 (Roy: "drop the season thing"): every
+// plant has a purpose (goal), a timing (target date) and milestones. Old
+// seasons stay in D1, unshown; new people get none.
 async function plantNew(ctx) {
   const b = ctx.body, db = ctx.db, today = ctx.today;
   const v = {
     name: str(b.name, 80, 'Name', true), type: type(b.type), cadence: cadence(b.cadence ?? TYPES[b.type]?.cadence),
-    intent: str(b.intent, 500, 'Why it matters now'), goal: str(b.goal, 300, 'Goal'), seasonGoal: str(b.seasonGoal, 300, 'Season goal'),
-    next: str(b.next, 300, 'First next step')
+    goal: str(b.goal, 300, 'Purpose'), next: str(b.next, 300, 'First next step')
   };
   const species = cleanSpecies(b.species) || bad('Pick a species');
-  const ms = v.type === 'person' ? [] : readMilestones(b.milestones, today);
+  const ms = readMilestones(b.milestones, today);
+  const perennial = v.type === 'person';
+  const own = perennial ? readBranches(b.branches, 'branches') : [];
+  const people = perennial ? [] : readBranches(b.people, 'people');
   await guardPlant(db, v, ms);
   await guard(db, { Species: [species.name, species.origin, species.lore, species.fits].join(' · ') });
+  await guard(db, Object.fromEntries([...own, ...people].map((x, i) => [`Branch ${i + 1}`, x.title])));
+  for (const x of own) if (x.projectId) await projectRow(db, x.projectId);
+  for (const x of people) await personRow(db, x.plantId);
   let id = newId(), created = ctx.at;
   if (b.ideaId) {
     const idea = await plantRow(db, b.ideaId, ['idea']);
     id = idea.id; created = idea.created_at;
   }
-  const perennial = v.type === 'person';
-  const target = perennial ? null : date(b.target, 'Target date', addDays(today, 90));
-  const stmts = [db.prepare(`INSERT INTO plants (id, name, type, place, cadence_days, intent, goal, start_date, target_date, species, last_cared_at, created_at, planted_at, updated_at)
-      VALUES (?1, ?2, ?3, 'greenhouse', ?4, ?5, ?6, ?7, ?8, ?9, ?7, ?10, ?7, ?11)
-      ON CONFLICT (id) DO UPDATE SET name = ?2, type = ?3, place = 'greenhouse', cadence_days = ?4, intent = ?5, goal = ?6, start_date = ?7, target_date = ?8,
-        species = ?9, last_cared_at = ?7, planted_at = ?7, updated_at = ?11`)
-    .bind(id, v.name, v.type, v.cadence, v.intent || null, perennial ? null : v.goal || null, today, target, JSON.stringify(species), created, ctx.at)];
-  if (perennial) {
-    const end = date(b.seasonEnd, 'Season end', addDays(today, 90));
-    stmts.push(db.prepare('INSERT INTO seasons (id, plant_id, n, goal, start_date, end_date) VALUES (?, ?, 1, ?, ?, ?)').bind(newId(), id, v.seasonGoal || null, today, end > today ? end : addDays(today, 90)));
-  }
+  const target = date(b.target, 'Timing', addDays(today, 90));
+  const stmts = [db.prepare(`INSERT INTO plants (id, name, type, place, cadence_days, goal, start_date, target_date, species, last_cared_at, created_at, planted_at, updated_at)
+      VALUES (?1, ?2, ?3, 'greenhouse', ?4, ?5, ?6, ?7, ?8, ?6, ?9, ?6, ?10)
+      ON CONFLICT (id) DO UPDATE SET name = ?2, type = ?3, place = 'greenhouse', cadence_days = ?4, goal = ?5, start_date = ?6, target_date = ?7,
+        species = ?8, last_cared_at = ?6, planted_at = ?6, updated_at = ?10`)
+    .bind(id, v.name, v.type, v.cadence, v.goal || null, today, target, JSON.stringify(species), created, ctx.at)];
   for (const m of ms) stmts.push(db.prepare('INSERT INTO milestones (id, plant_id, title, due_on) VALUES (?, ?, ?, ?)').bind(newId(), id, m.t, m.d));
   stmts.push(entry(ctx, id, 'plant', { note: species.name }));
   if (v.next) stmts.push(db.prepare('INSERT INTO follow_ups (id, plant_id, text, added_on) VALUES (?, ?, ?, ?)').bind(newId(), id, v.next, today));
+  for (const x of own) stmts.push(db.prepare('INSERT INTO branches (id, plant_id, title, started_on, project_id) VALUES (?, ?, ?, ?, ?)').bind(newId(), id, x.title, today, x.projectId));
+  for (const x of people) stmts.push(db.prepare('INSERT INTO branches (id, plant_id, title, started_on, project_id) VALUES (?, ?, ?, ?, ?)').bind(newId(), x.plantId, x.title, today, id));
   await db.batch(stmts);
   return { ...(await fresh(ctx)), id };
 }
@@ -173,38 +205,26 @@ async function plantNew(ctx) {
 async function plantEdit(ctx) {
   const b = ctx.body, db = ctx.db, today = ctx.today;
   const p = await plantRow(db, ctx.params.id, ['greenhouse', 'shed']);
-  const v = {
-    name: str(b.name, 80, 'Name', true), type: type(b.type), cadence: cadence(b.cadence),
-    intent: str(b.intent, 500, 'Why it matters now'), goal: str(b.goal, 300, 'Goal'), seasonGoal: str(b.seasonGoal, 300, 'Season goal'),
-    next: ''
-  };
-  const perennial = v.type === 'person';
-  const ms = perennial ? [] : readMilestones(b.milestones, today);
+  const v = { name: str(b.name, 80, 'Name', true), type: type(b.type), cadence: cadence(b.cadence), goal: str(b.goal, 300, 'Purpose'), next: '' };
+  const ms = readMilestones(b.milestones, today);
   await guardPlant(db, v, ms);
   const old = JSON.parse(p.species || 'null');
   const species = b.species ? cleanSpecies(b.species) || bad('That species is not from Velune') : old;
   if (species !== old) await guard(db, { Species: [species.name, species.origin, species.lore, species.fits].join(' · ') });
-  const stmts = [db.prepare(`UPDATE plants SET name = ?, type = ?, cadence_days = ?, intent = ?, goal = ?, start_date = ?, target_date = ?, species = ?,
+  const stmts = [db.prepare(`UPDATE plants SET name = ?, type = ?, cadence_days = ?, goal = ?, start_date = ?, target_date = ?, species = ?,
       updated_at = ? WHERE id = ?`)
-    .bind(v.name, v.type, v.cadence, v.intent || null, perennial ? p.goal : v.goal || null, p.start_date || p.planted_at || today,
-      perennial ? p.target_date : date(b.target, 'Target date', p.target_date || addDays(today, 90)), JSON.stringify(species), ctx.at, p.id)];
+    .bind(v.name, v.type, v.cadence, v.goal || null, p.start_date || p.planted_at || today,
+      date(b.target, 'Timing', p.target_date || addDays(today, 90)), JSON.stringify(species), ctx.at, p.id)];
   if (p.cadence_days !== v.cadence) stmts.push(entry(ctx, p.id, 'cadence', { note: `${cadenceName(p.cadence_days)} → ${cadenceName(v.cadence).toLowerCase()}` }));
   if (old && species.name !== old.name) stmts.push(entry(ctx, p.id, 'species', { note: `${old.name} → ${species.name}` }));
-  if (perennial) {
-    const cur = await db.prepare('SELECT * FROM seasons WHERE plant_id = ? AND closed_on IS NULL ORDER BY n DESC').bind(p.id).first();
-    const end = date(b.seasonEnd, 'Season end', cur ? cur.end_date : addDays(today, 90));
-    if (cur) stmts.push(db.prepare('UPDATE seasons SET goal = ?, end_date = ? WHERE id = ?').bind(v.seasonGoal || null, end, cur.id));
-    else stmts.push(db.prepare('INSERT INTO seasons (id, plant_id, n, goal, start_date, end_date) VALUES (?, ?, 1, ?, ?, ?)').bind(newId(), p.id, v.seasonGoal || null, today, end > today ? end : addDays(today, 90)));
-  } else {
-    // Milestones by id: kept ones are updated, new ones added, missing ones marked removed (never erased).
-    const { results: have } = await db.prepare('SELECT id FROM milestones WHERE plant_id = ? AND season_id IS NULL AND removed = 0').bind(p.id).all();
-    const keep = new Set();
-    for (const m of ms) {
-      if (m.id && have.some(h => h.id === m.id)) { keep.add(m.id); stmts.push(db.prepare('UPDATE milestones SET title = ?, due_on = ? WHERE id = ?').bind(m.t, m.d, m.id)); }
-      else stmts.push(db.prepare('INSERT INTO milestones (id, plant_id, title, due_on) VALUES (?, ?, ?, ?)').bind(newId(), p.id, m.t, m.d));
-    }
-    for (const h of have) if (!keep.has(h.id)) stmts.push(db.prepare('UPDATE milestones SET removed = 1 WHERE id = ?').bind(h.id));
+  // Milestones by id: kept ones are updated, new ones added, missing ones marked removed (never erased).
+  const { results: have } = await db.prepare('SELECT id FROM milestones WHERE plant_id = ? AND removed = 0').bind(p.id).all();
+  const keep = new Set();
+  for (const m of ms) {
+    if (m.id && have.some(h => h.id === m.id)) { keep.add(m.id); stmts.push(db.prepare('UPDATE milestones SET title = ?, due_on = ? WHERE id = ?').bind(m.t, m.d, m.id)); }
+    else stmts.push(db.prepare('INSERT INTO milestones (id, plant_id, title, due_on) VALUES (?, ?, ?, ?)').bind(newId(), p.id, m.t, m.d));
   }
+  for (const h of have) if (!keep.has(h.id)) stmts.push(db.prepare('UPDATE milestones SET removed = 1 WHERE id = ?').bind(h.id));
   await db.batch(stmts);
   return fresh(ctx);
 }
@@ -245,54 +265,6 @@ async function done(ctx) {
   return fresh(ctx);
 }
 
-async function currentSeason(db, plantId) {
-  const s = await db.prepare('SELECT * FROM seasons WHERE plant_id = ? AND closed_on IS NULL ORDER BY n DESC').bind(plantId).first();
-  return s || notFound('Season');
-}
-
-async function seasonNext(ctx) {
-  const db = ctx.db, p = await plantRow(db, ctx.params.id, ['greenhouse']);
-  if (p.type !== 'person') bad('Only people grow in seasons');
-  const s = await currentSeason(db, p.id);
-  const review = str(ctx.body.review, 2000, 'Season review'), goal = str(ctx.body.goal, 300, 'Next season goal');
-  await guard(db, { 'Season review': review, 'Next season goal': goal });
-  let end = date(ctx.body.end, 'Season end', addDays(ctx.today, 90));
-  if (end <= ctx.today) end = addDays(ctx.today, 90);
-  const next = newId();
-  await db.batch([
-    db.prepare('UPDATE seasons SET review = ?, closed_on = ? WHERE id = ?').bind(review || null, ctx.today, s.id),
-    db.prepare('INSERT INTO seasons (id, plant_id, n, goal, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)').bind(next, p.id, s.n + 1, goal || null, ctx.today, end),
-    // Open milestones move to the new season.
-    db.prepare('UPDATE milestones SET season_id = ? WHERE season_id = ? AND done_on IS NULL AND removed = 0').bind(next, s.id),
-    entry(ctx, p.id, 'season', { note: `Season ${s.n + 1}${goal ? `: ${goal}` : ''}` }),
-    touched(ctx, p.id)
-  ]);
-  return fresh(ctx);
-}
-
-async function seasonRow(db, id) {
-  const s = await db.prepare('SELECT * FROM seasons WHERE id = ?').bind(id).first();
-  if (!s) notFound('Season');
-  if (s.closed_on) throw new HttpError(409, { error: 'That season is closed' });
-  await plantRow(db, s.plant_id, ['greenhouse']);
-  return s;
-}
-
-async function seasonEdit(ctx) {
-  const s = await seasonRow(ctx.db, ctx.params.id);
-  const goal = str(ctx.body.goal, 300, 'Season goal');
-  await guard(ctx.db, { 'Season goal': goal });
-  await ctx.db.batch([ctx.db.prepare('UPDATE seasons SET goal = ? WHERE id = ?').bind(goal || null, s.id), touched(ctx, s.plant_id)]);
-  return fresh(ctx);
-}
-
-async function seasonMilestone(ctx) {
-  const s = await seasonRow(ctx.db, ctx.params.id);
-  const t = str(ctx.body.t, 120, 'Milestone', true), d = date(ctx.body.d, 'Milestone date', s.end_date);
-  await guard(ctx.db, { Milestone: t });
-  await ctx.db.batch([ctx.db.prepare('INSERT INTO milestones (id, plant_id, season_id, title, due_on) VALUES (?, ?, ?, ?, ?)').bind(newId(), s.plant_id, s.id, t, d), touched(ctx, s.plant_id)]);
-  return fresh(ctx);
-}
 
 async function milestoneToggle(ctx) {
   const m = await ctx.db.prepare('SELECT * FROM milestones WHERE id = ? AND removed = 0').bind(ctx.params.id).first();

@@ -134,7 +134,10 @@ export function world(sp) {
 export const terra = (sp, st, hp, extra = '', cls = '') => `<div class="terra ${cls}" style="--h:${sp.hue}">${world(sp)}${alienSVG(sp, st, hp)}${extra}</div>`;
 export const VEIL = (big = '✦ New growth', small = 'open to reveal', more = '') => `<div class="veil"><b>${big}</b><small>${small}</small>${more}</div>`;
 // The plant's current picture, veiled while this Monday's picture is unopened.
-export const pic = (p, st, hp, extra = '') => (p.unseen ? terra(p.species, st, hp, VEIL() + extra, 'veiled') : terra(p.species, st, hp, extra, p.justRevealed ? 'revealed' : ''));
+// Once painted (✦ Paint its picture) the plant's own picture takes the drawing's place.
+const photo = (p, hp, extra, cls = '') => `<div class="terra photo ${cls}" style="--h:${p.species.hue}" data-hp="${hp}"><img src="${esc(p.picture)}" alt="${esc(p.species.name)}, painted" loading="lazy" decoding="async">${extra}</div>`;
+export const pic = (p, st, hp, extra = '') => (p.unseen ? terra(p.species, st, hp, VEIL() + extra, 'veiled')
+  : p.picture ? photo(p, hp, extra, p.justRevealed ? 'revealed' : '') : terra(p.species, st, hp, extra, p.justRevealed ? 'revealed' : ''));
 
 // The garden is Velune itself: its five biomes side by side, each finished plant standing in its own biome.
 // From build step 3 Gemini turns the composed picture into a looping clip; until then the page animates it.

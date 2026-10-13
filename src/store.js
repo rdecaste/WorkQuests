@@ -1,6 +1,7 @@
 // Reading the garden out of D1, in the shape the page works with
 // (see public/shared/rules.js), and the small helpers the writes share.
 import { landscapeState } from './landscape.js';
+import { pictureJobs } from './plantpicture.js';
 import { amsterdamDay, mondayOf, nextMonday, health } from '../public/shared/rules.js';
 
 export const now = () => new Date().toISOString();
@@ -33,18 +34,18 @@ export async function buildState(env, { today = amsterdamDay() } = {}) {
   const db = env.DB;
   const ko = await keepOut(db);
   const q = sql => db.prepare(sql);
-  const [plants, seasons, milestones, branches, updates, entries, follow, weeks] = (await db.batch([
+  const [plants, milestones, branches, updates, entries, follow, weeks, jobs] = (await db.batch([
     q("SELECT * FROM plants WHERE place != 'discarded' ORDER BY created_at"),
-    q('SELECT * FROM seasons ORDER BY n'),
     q('SELECT * FROM milestones WHERE removed = 0 ORDER BY due_on, rowid'),
     q('SELECT * FROM branches ORDER BY started_on, rowid'),
     q('SELECT * FROM branch_updates ORDER BY happened_on DESC, created_at DESC'),
     q('SELECT * FROM entries ORDER BY happened_on DESC, created_at DESC'),
     q('SELECT * FROM follow_ups ORDER BY added_on, rowid'),
-    q('SELECT plant_id, week, stage, health, image_key, seen_at FROM weeks ORDER BY week')
+    q('SELECT plant_id, week, stage, health, image_key, seen_at FROM weeks ORDER BY week'),
+    q("SELECT key, value FROM settings WHERE key LIKE 'picture:%'")
   ])).map(r => r.results);
   const by = {
-    seasons: group(seasons, 'plant_id'), milestones: group(milestones, 'plant_id'), branches: group(branches, 'plant_id'),
+    pictures: pictureJobs(jobs), milestones: group(milestones, 'plant_id'), branches: group(branches, 'plant_id'),
     updates: group(updates, 'branch_id'), entries: group(entries, 'plant_id'), follow: group(follow, 'plant_id'), weeks: group(weeks, 'plant_id')
   };
   return {
@@ -82,14 +83,9 @@ function shapePlant(row, by, today) {
     goal: row.goal || '', intent: row.intent || '',
     species: JSON.parse(row.species || 'null') || { name: 'Unnamed seedling', origin: 'Somewhere on Velune', form: 'tendril', hue: 150, lore: '', fits: '' }
   });
-  const mss = by.milestones(row.id);
-  if (row.type === 'person') {
-    const ss = by.seasons(row.id), cur = ss.filter(s => !s.closed_on).at(-1) || ss.at(-1);
-    if (cur) p.season = { id: cur.id, n: cur.n, goal: cur.goal || '', start: cur.start_date, end: cur.end_date, milestones: mss.filter(m => m.season_id === cur.id).map(ms) };
-    p.pastSeasons = ss.filter(s => s !== cur).map(s => ({ n: s.n, goal: s.goal || '', start: s.start_date, end: s.end_date, review: s.review || '' }));
-  } else {
-    p.milestones = mss.filter(m => !m.season_id).map(ms);
-  }
+  // Seasons left the page on 13 Oct 2026: everyone has a purpose, a timing and
+  // milestones. A person's old seasons stay in D1 (and the export), unshown.
+  p.milestones = by.milestones(row.id).map(ms);
   p.work = by.branches(row.id).map(b => ({ id: b.id, title: b.title, project: b.project_id || null, since: b.started_on, ended: b.done_on || null, updates: by.updates(b.id).map(u => ({ id: u.id, date: u.happened_on, text: u.text })) }));
   const fu = by.follow(row.id);
   p.todos = fu.map(f => ({ id: f.id, text: f.text, added: f.added_on, closed: f.cleared_on || null }));
@@ -101,6 +97,9 @@ function shapePlant(row, by, today) {
   p.history = wk.length ? wk.map(w => [w.stage, w.health]) : [[row.stage, row.place === 'greenhouse' ? health(p, today) : row.place === 'shed' ? 'dormant' : 'thriving']];
   p.unseen = !!(wk.at(-1) && wk.at(-1).image_key && !wk.at(-1).seen_at);
   if (row.place === 'garden') p.done = { date: row.done_on, note: row.done_note || '' };
+  // Its own painted picture (✦ Paint its picture, src/plantpicture.js), and how painting it went.
+  p.picture = row.picture_key ? '/media/' + row.picture_key : null;
+  p.pictureStatus = by.pictures(row.id);
   return p;
 }
 

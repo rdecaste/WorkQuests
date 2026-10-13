@@ -20,8 +20,12 @@
   // The landscape's still and loop (landscape/…), served at /media/ behind the sign-in.
   "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "work-garden-media" }],
   // Paints the landscape: OpenAI still, then Gemini loop (src/landscape.js, class in src/entry.js).
-  "workflows": [{ "name": "work-garden-scene", "binding": "GARDEN_SCENE", "class_name": "GardenScene" }],
-  // Roy OS paints the landscape with its keys (its Studio entrypoint, service binding only).
+  // And each plant's first picture, its seed (src/plantpicture.js, class PlantPicture).
+  "workflows": [
+    { "name": "work-garden-scene", "binding": "GARDEN_SCENE", "class_name": "GardenScene" },
+    { "name": "work-garden-plant", "binding": "PLANT_PICTURE", "class_name": "PlantPicture" }
+  ],
+  // Roy OS paints the pictures and drafts "Frame it with AI" with its keys (its Studio entrypoint, service binding only).
   "services": [{ "binding": "STUDIO", "service": "royos", "entrypoint": "Studio" }],
   "vars": {
     // The Access team (billowing-boat-2009.cloudflareaccess.com) and the
@@ -37,6 +41,6 @@
   // Secrets (npx wrangler secret put NAME):
   //   ALLOWED_EMAILS  who may use it, comma-separated
   //   OPENAI_API_KEY, GEMINI_API_KEY  only without the STUDIO binding (Roy OS paints with its own keys);
-  //                   OPENAI_API_KEY again for AI planting (step 2), unless that goes through Roy OS too
+  //                   (the same OPENAI_API_KEY drafts "Frame it with AI" without STUDIO; CHAT_MODEL var overrides gpt-6-astra)
   // Models: IMAGE_MODEL and VIDEO_MODEL vars override gpt-image-2.5-flare and gemini-omni-flash-preview.
 }

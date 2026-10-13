@@ -6,6 +6,7 @@
 // branch's name and updates never reach OpenAI, only its size and state.
 
 import { mondayOf, daysBetween } from '../public/shared/rules.js';
+import { CATALOGUE } from '../public/shared/velune.js';
 
 // Roy, 13 Oct 2026: "the plant image needs to be between hyper realistic and
 // 'anime'".
@@ -48,4 +49,42 @@ export function limbPrompt(limbs) {
   if (!limbs.length) return '';
   return ['Limbs from the bottom of the stem up:', ...limbs.map((l, i) => `${i + 1}. ${SIZE_WORDS[l.size]}${STATE_WORDS[l.state]}`),
     'Keep every existing limb where it is in the reference picture; add new ones above.'].join('\n');
+}
+
+// ---- The seed picture (✦ Paint its picture, right after planting) ----
+// Roy, 13 Oct 2026: "I also want the plant image to be generated once I start a
+// plant - there should be a button". Only the seed: what it grows into stays a
+// surprise. The words come from the catalogue (public/shared/velune.js) and the
+// fixed lines below; a species that is not in the catalogue is painted from its
+// shape and colour only, so nothing typed reaches the painter.
+const BIOME_LOOK = {
+  spire: 'the Glass Dunes: pale gold sand with glints of blue glass',
+  star: 'the Petal Steppe: rolling mauve grass with a few drifting glowing petals',
+  tendril: 'the Tide Marsh: dark teal shallows with soft light on the water',
+  cap: 'the Rust Flats: cracked rust-red crust under a faint spore haze',
+  orb: 'the Ember Hollows: near-black rock, a cave mouth glowing warm orange behind'
+};
+const FORM_HINT = {
+  spire: 'a tiny crystal shoot, faceted and translucent',
+  star: 'a tiny shoot with two pointed seed leaves',
+  tendril: 'a tiny shoot with one curled frond, like a fern unrolling',
+  cap: 'a tiny shoot with a rounded cap the size of a fingernail',
+  orb: 'a tiny shoot with a small round bud that glows faintly from inside'
+};
+const HUES = [[15, 'warm red'], [40, 'amber'], [65, 'gold'], [100, 'yellow-green'], [150, 'green'], [190, 'teal'], [215, 'cyan blue'], [255, 'blue'], [290, 'violet'], [335, 'magenta'], [361, 'warm red']];
+export const hueWord = h => HUES.find(([max]) => h < max)[1];
+
+export function seedPrompt(species) {
+  const sp = species || {};
+  const form = BIOME_LOOK[sp.form] ? sp.form : 'tendril';
+  const known = CATALOGUE.find(c => c.name === sp.name && c.form === form);
+  const hue = known ? known.hue : Number.isFinite(sp.hue) ? sp.hue : 150;
+  return [
+    `A close, intimate portrait of a single seed that has just sprouted on Velune, an alien night world${known ? `: the very first sprout of the ${known.name}` : ''}.`,
+    `The seed sits half in the ground of ${BIOME_LOOK[form]}. From it rises ${FORM_HINT[form]}, glowing softly in ${hueWord(hue)} light.`,
+    'It is only a sprout, no taller than a thumb: no stem to speak of, no flowers, no grown plant. Nothing hints at what it will grow into.',
+    'The seed and sprout sit in the middle of the frame, in sharp focus; the ground and sky behind fall softly out of focus. No other plants, no creatures, no people.',
+    STYLE,
+    'Landscape 16:9.'
+  ].join('\n');
 }

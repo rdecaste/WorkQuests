@@ -133,6 +133,13 @@ Below the scene, a short list gives each plant's outcome and dates.
 Cadence presets are Weekly, Fortnightly and Monthly (rare), or any number of
 days.
 
+> **Changed 13 Oct 2026: no seasons.** Roy: "drop the season thing. yes
+> milestones. yes timing, yes, intent/purpose no to 'why it matters now'".
+> Every plant, people included, now has a purpose, a timing (target date)
+> and milestones; the season card, Close season and the season routes are
+> gone. Seasons already made stay in D1, unshown. The text below is kept as
+> the original design.
+
 **Suggestion for people: seasons.** A person never "finishes", but a
 relationship does move in chapters. So a person plant has seasons, by default
 one per quarter and lined up with your review cycle. A season holds what you
@@ -328,6 +335,20 @@ plant (its backdrop and its seed), plus one Gemini clip each time a plant
 moves to the garden. Pictures are kept forever (they are small) and included in the backup.
 
 ## Planting with AI
+
+> **As built, 13 Oct 2026** (mockup https://claude.ai/artifact/3js2FZ4p7gNd65wiMRsSmn):
+> describe it and say what it's about (or let the AI tell), **✦ Frame it with
+> AI** fills name, type, purpose, timing, milestones, branches (a person; a
+> branch can point to a project) or people on it (a project or initiative),
+> cadence and a first next step, each with a one-line reason, plus a
+> recommendation (plant now, or keep it as an idea) and up to three questions
+> picked by the kind of plant. The species is one of three from the Velune
+> catalogue (the AI picks, Roy chooses). **Update draft with answers**
+> redrafts, **Fill in myself** skips the AI. After planting, **✦ Paint its
+> picture** paints the seed (one image, no home-world backdrop yet). The AI
+> sees the description, the answers, the draft and the names of Roy's live
+> plants, all after the guard; never log entries or updates. The original
+> design follows.
 
 1. **Describe it** in a sentence or two.
 2. **✦ Draft with AI** (one call): name, type, species with lore and special

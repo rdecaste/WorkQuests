@@ -23,7 +23,8 @@ export const IMAGE_MODEL = 'gpt-image-2.5-flare';
 export const VIDEO_MODEL = 'gemini-omni-flash-preview';
 const BUSY = 30 * 60e3;        // a job older than this counts as stuck, and Paint works again
 const SIGNED_FOR = 30 * 60e3;  // how long Gemini may read the still from its signed address
-const KEY = /^landscape\/[0-9a-z-]+\.(jpg|mp4)$/;
+// The landscape, and each plant's own pictures (plants/<plant id>/<stamp>.jpg, src/plantpicture.js).
+const KEY = /^(landscape\/[0-9a-z-]+\.(jpg|mp4)|plants\/[0-9a-f-]{36}\/[0-9a-z-]+\.jpg)$/;
 const enc = new TextEncoder();
 const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -94,15 +95,15 @@ function fromBase64(b64) {
   for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
   return out;
 }
-export async function paintStill(env) {
-  if (env.STUDIO) return new Uint8Array(await env.STUDIO.still(STILL_PROMPT));
+export async function paintStill(env, prompt = STILL_PROMPT) {
+  if (env.STUDIO) return new Uint8Array(await env.STUDIO.still(prompt));
   const model = env.IMAGE_MODEL || IMAGE_MODEL;
   let res, data;
   for (const size of SIZES) {
     res = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ model, prompt: STILL_PROMPT, n: 1, size, quality: 'high', background: 'opaque', moderation: 'low', output_format: 'jpeg', output_compression: 92 })
+      body: JSON.stringify({ model, prompt, n: 1, size, quality: 'high', background: 'opaque', moderation: 'low', output_format: 'jpeg', output_compression: 92 })
     });
     data = await res.json().catch(() => ({}));
     if (!(res.status === 400 && /size/i.test((data.error && (data.error.param || data.error.message)) || ''))) break;

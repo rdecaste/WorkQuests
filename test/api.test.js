@@ -7,19 +7,21 @@ import { amsterdamDay } from '../public/shared/rules.js';
 const today = amsterdamDay();
 const find = (state, id) => state.plants.find(p => p.id === id);
 async function plantPerson(env, extra = {}) {
-  const r = await call(env, 'POST', '/api/plants', { name: 'Lars Meijer', type: 'person', cadence: 7, species: SPECIES, seasonGoal: 'Settled in and shipping on his own', intent: 'New to the team', next: 'Pick a starter ticket', ...extra });
+  const r = await call(env, 'POST', '/api/plants', { name: 'Lars Meijer', type: 'person', cadence: 7, species: SPECIES, goal: 'Settled in and shipping on his own', target: '2027-01-31', next: 'Pick a starter ticket', ...extra });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   return r.body;
 }
 
-test('plant a person: season, follow-up from the first step, planted entry', async () => {
+test('plant a person: purpose, timing, follow-up from the first step, planted entry', async () => {
   const env = makeEnv();
   const s = await plantPerson(env);
   const p = find(s, s.id);
   assert.equal(p.place, 'greenhouse');
   assert.equal(p.planted, today);
-  assert.equal(p.season.n, 1);
-  assert.equal(p.season.goal, 'Settled in and shipping on his own');
+  assert.equal(p.goal, 'Settled in and shipping on his own');
+  assert.equal(p.target, '2027-01-31');
+  assert.equal(p.season, undefined);
+  assert.equal(p.picture, null);
   assert.deepEqual(p.todos.map(t => t.text), ['Pick a starter ticket']);
   assert.equal(p.log[0].kind, 'plant');
   assert.equal(p.species.name, 'Lattice Fern');
@@ -40,10 +42,10 @@ test('plant a project with milestones and a target', async () => {
 
 test('the guard refuses sensitive text on every write, server side', async () => {
   const env = makeEnv();
-  const r = await call(env, 'POST', '/api/plants', { name: 'Tooling renewal', type: 'project', species: SPECIES, intent: 'Offer is €48k higher' });
+  const r = await call(env, 'POST', '/api/plants', { name: 'Tooling renewal', type: 'project', species: SPECIES, goal: 'Offer is €48k higher' });
   assert.equal(r.status, 422);
   assert.equal(r.body.error, 'guard');
-  assert.equal(r.body.field, 'Why it matters now');
+  assert.equal(r.body.field, 'Purpose');
   assert.match(r.body.hits[0], /amount of money/);
   const s = await plantPerson(env);
   assert.equal((await call(env, 'POST', `/api/plants/${s.id}/checkin`, { going: 'Talked about his salary' })).status, 422);
@@ -132,24 +134,27 @@ test('branches and updates', async () => {
   assert.equal((await call(env, 'POST', `/api/branches/${b.id}/updates`, { text: 'late' })).status, 409);
 });
 
-test('seasons: goal, milestones, closing moves open milestones on', async () => {
+test('people have milestones too; old seasons stay in D1, unshown', async () => {
   const env = makeEnv();
-  const s = await plantPerson(env);
-  const season = find(s, s.id).season;
-  let g = (await call(env, 'PATCH', `/api/seasons/${season.id}`, { goal: 'Owns the notifications service' })).body;
-  assert.equal(find(g, s.id).season.goal, 'Owns the notifications service');
-  await call(env, 'POST', `/api/seasons/${season.id}/milestones`, { t: 'Ships one feature', d: season.end });
-  g = (await call(env, 'POST', `/api/seasons/${season.id}/milestones`, { t: 'Joins on-call', d: season.end })).body;
-  const [m1] = find(g, s.id).season.milestones;
-  g = (await call(env, 'POST', `/api/milestones/${m1.id}/toggle`, {})).body;
-  assert.equal(find(g, s.id).season.milestones.find(m => m.id === m1.id).done, true);
-  g = (await call(env, 'POST', `/api/plants/${s.id}/season`, { review: 'Settled in quickly.', goal: 'Leads a small project', end: '2027-03-31' })).body;
+  const s = await plantPerson(env, { milestones: [{ t: 'Ships one feature', d: '2026-12-01' }] });
+  const [m] = find(s, s.id).milestones;
+  assert.equal(m.t, 'Ships one feature');
+  let g = (await call(env, 'POST', `/api/milestones/${m.id}/toggle`, {})).body;
+  assert.equal(find(g, s.id).milestones[0].done, true);
+  g = (await call(env, 'PATCH', `/api/plants/${s.id}`, { name: 'Lars Meijer', type: 'person', cadence: 7, goal: 'Owns the notifications service', target: '2027-03-31', milestones: [{ t: 'Joins on-call', d: '2027-01-15' }] })).body;
   const p = find(g, s.id);
-  assert.equal(p.season.n, 2);
-  assert.equal(p.season.goal, 'Leads a small project');
-  assert.deepEqual(p.season.milestones.map(m => m.t), ['Joins on-call']);
-  assert.deepEqual(p.pastSeasons.map(x => [x.n, x.review]), [[1, 'Settled in quickly.']]);
-  assert.equal(p.log[0].kind, 'season');
+  assert.equal(p.goal, 'Owns the notifications service');
+  assert.equal(p.target, '2027-03-31');
+  assert.deepEqual(p.milestones.map(x => x.t), ['Joins on-call']);
+  // The dropped milestone is marked removed, not erased.
+  assert.equal((await env.DB.prepare('SELECT removed FROM milestones WHERE id = ?').bind(m.id).first()).removed, 1);
+  // A season from before stays where it was, and the season routes are gone.
+  await env.DB.prepare("INSERT INTO seasons (id, plant_id, n, goal, start_date, end_date) VALUES ('s1', ?, 1, 'Settle in', '2026-10-01', '2027-01-10')").bind(s.id).run();
+  g = (await call(env, 'GET', '/api/garden')).body;
+  assert.equal(find(g, s.id).season, undefined);
+  assert.equal((await env.DB.prepare('SELECT goal FROM seasons WHERE id = ?').bind('s1').first()).goal, 'Settle in');
+  assert.equal((await call(env, 'POST', `/api/plants/${s.id}/season`, {})).status, 404);
+  assert.equal((await call(env, 'PATCH', '/api/seasons/s1', { goal: 'x' })).status, 404);
 });
 
 test('park, revive, done; done is final', async () => {

@@ -1,12 +1,15 @@
 // The Worker's entry (wrangler.jsonc "main"): the page and API from index.js,
 // plus GardenPass, which only Workers with a service binding to it can call
-// (Roy OS's WORK_GARDEN binding), and the GardenScene Workflow that paints the
-// landscape. Kept apart from index.js because cloudflare:workers only exists
-// on Cloudflare, not in the tests.
+// (Roy OS's WORK_GARDEN binding), the GardenScene Workflow that paints the
+// landscape and the PlantPicture Workflow that paints a plant's seed. Kept
+// apart from index.js because cloudflare:workers only exists on Cloudflare,
+// not in the tests.
 import { WorkerEntrypoint, WorkflowEntrypoint } from 'cloudflare:workers';
 import worker from './index.js';
 import { mintPass } from './pass.js';
 import { paintStill, animate, signedMediaUrl, finishLandscape, setJob } from './landscape.js';
+import { seedPrompt } from './pictures.js';
+import { finishPicture, setPictureJob } from './plantpicture.js';
 
 export class GardenPass extends WorkerEntrypoint {
   // A one-time pass for /pass?t=…, good for a minute. Roy OS only asks once Roy is signed in there.
@@ -48,6 +51,29 @@ export class GardenScene extends WorkflowEntrypoint {
     }
     await step.do('show', CHEAP, () => finishLandscape(env.DB, { stillKey, clipKey, error }));
     return { ok: 1, stillKey, clipKey, error };
+  }
+}
+
+// A plant's first picture (src/plantpicture.js): one paid still of its seed, from fixed words.
+export class PlantPicture extends WorkflowEntrypoint {
+  async run(event, step) {
+    const { plantId, stamp } = event.payload;
+    const env = this.env;
+    let key;
+    try {
+      key = await step.do('still', ONCE_PAID, async () => {
+        const row = await env.DB.prepare('SELECT species FROM plants WHERE id = ?').bind(plantId).first();
+        if (!row) throw new Error('plant not found');
+        const k = `plants/${plantId}/${stamp}.jpg`;
+        await env.MEDIA.put(k, await paintStill(env, seedPrompt(JSON.parse(row.species || 'null'))), { httpMetadata: { contentType: 'image/jpeg' } });
+        return k;
+      });
+    } catch (err) {
+      await setPictureJob(env.DB, plantId, { status: 'failed', started_at: new Date().toISOString(), error: message(err) });
+      throw err;
+    }
+    await step.do('show', CHEAP, () => finishPicture(env.DB, plantId, key));
+    return { ok: 1, key };
   }
 }
 

@@ -20,8 +20,10 @@ every change. The agreed design is `docs/proposal.md`.
 - Every request needs the Roy OS session cookie (`src/pass.js`) or an Access
   token (`src/access.js`); without either, nothing but a redirect to Roy OS.
   The session key and passes never leave D1 (not in the export).
-- Image and video prompts are fixed text (`src/landscape.js`): nothing Roy
-  types is sent to OpenAI or Gemini for pictures.
+- Image and video prompts are fixed text (`src/landscape.js`, `src/pictures.js`):
+  nothing Roy types is sent to OpenAI or Gemini for pictures. ✦ Frame it with AI
+  (`src/frame.js`) does send his description to the chat model, only after the
+  guard, and guards every line of the answer before the page sees it.
 - Nothing is deleted: discarded ideas get `place = 'discarded'`, removed
   milestones `removed = 1`.
 - Growth is never previewed and no levels are shown; new Monday pictures stay
